@@ -1,0 +1,49 @@
+﻿spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+    gateway:
+      routes:
+        - id: wlx-backend-user-service
+          uri: lb://wlx-backend-user-service
+          predicates:
+            - Path=/api/user/**
+        - id: wlx-backend-question-service
+          uri: lb://wlx-backend-question-service
+          predicates:
+            - Path=/api/question/**
+        - id: wlx-backend-judge-service
+          uri: lb://wlx-backend-judge-service
+          predicates:
+            - Path=/api/judge/**
+        - id: nchuOJ-backend-exam-service
+          uri: lb://nchuOJ-backend-exam-service
+          predicates:
+            - Path=/api/exam/**
+  application:
+    name: wlx-backend-gateway
+  main:
+    web-application-type: reactive
+server:
+  port: 8101
+knife4j:
+  gateway:
+    # 开启gateway聚合组件
+    enabled: true
+    # 使用手动聚合模式（因为服务有context-path）
+    strategy: manual
+    routes:
+      - name: 用户服务
+        # 通过网关路由访问，带上context-path
+        url: /api/user/v3/api-docs
+        service-name: wlx-backend-user-service
+        order: 1
+      - name: 题目服务
+        url: /api/question/v3/api-docs
+        service-name: wlx-backend-question-service
+        order: 2
+      - name: 判题服务
+        url: /api/judge/v3/api-docs
+        service-name: wlx-backend-judge-service
+        order: 3
