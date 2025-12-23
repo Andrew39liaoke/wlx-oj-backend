@@ -1,40 +1,27 @@
-﻿# 公共配置文件
-spring:
+﻿spring:
   application:
-    name: wlx-backend-judge-service
-  # 默认 dev 环境
+    name: wlx-backend-post-service
   profiles:
     active: dev
-  # 支持 swagger3
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
-  # session 配置
   session:
     store-type: redis
-    # 30 天过期
     timeout: 2592000
-  # 数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/wlxoj
     username: root
     password: 1234
-  # Redis 配置
   servlet:
     multipart:
-      # 大小限制
+      # ????
       max-file-size: 10MB
   cloud:
     nacos:
       discovery:
-        server-addr: 127.0.0.1:8848
-  rabbitmq:
-    host: localhost
-    port: 5672
-    virtual-host: /
-    password: guest
-    username: guest
+        server-addr: localhost:8848
   data:
     redis:
       database: 1
@@ -44,10 +31,9 @@ spring:
       #password: 123321
 server:
   address: 0.0.0.0
-  port: 8104
+  port: 8105
   servlet:
-    context-path: /api/judge
-    # cookie 30 天过期
+    context-path: /api/post
     session:
       cookie:
         max-age: 2592000
@@ -58,10 +44,10 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
-      logic-delete-field: isDelete # 全局逻辑删除的实体字段名
-      logic-delete-value: 1 # 逻辑已删除值（默认为 1）
-      logic-not-delete-value: 0 # 逻辑未删除值（默认为 0）
-# 代码沙箱配置
+      logic-delete-field: isDelete
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+# ??????
 codesandbox:
   type: remote
 knife4j:

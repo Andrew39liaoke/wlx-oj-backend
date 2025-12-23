@@ -45,9 +45,34 @@ public class PostVO implements Serializable {
     private Integer favourNum;
 
     /**
+     * 分区
+     */
+    private String zone;
+
+    /**
+     * 观看数
+     */
+    private Integer viewNum;
+
+    /**
+     * 分区名称
+     */
+    private String zoneName;
+
+    /**
+     * 标签列表（json 数组）
+     */
+    private List<String> tags;
+
+    /**
      * 创建用户 id
      */
     private Long userId;
+    
+    /**
+     * 更新人
+     */
+    private Long updater;
 
     /**
      * 创建时间

@@ -17,10 +17,10 @@
           uri: lb://wlx-backend-judge-service
           predicates:
             - Path=/api/judge/**
-        - id: nchuOJ-backend-exam-service
-          uri: lb://nchuOJ-backend-exam-service
+        - id: wlx-backend-post-service
+          uri: lb://wlx-backend-post-service
           predicates:
-            - Path=/api/exam/**
+            - Path=/api/post/**
   application:
     name: wlx-backend-gateway
   main:
@@ -47,3 +47,7 @@ knife4j:
         url: /api/judge/v3/api-docs
         service-name: wlx-backend-judge-service
         order: 3
+      - name: 帖子服务
+        url: /api/post/v3/api-docs
+        service-name: wlx-backend-post-service
+        order: 4

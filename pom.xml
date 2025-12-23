@@ -10,6 +10,7 @@
     <modules>
         <module>wlx-backend-common</module>
         <module>wlx-backend-gateway</module>
+        <module>wlx-backend-post-service</module>
         <module>wlx-backend-judge-service</module>
         <module>wlx-backend-model</module>
         <module>wlx-backend-question-service</module>
@@ -29,6 +30,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

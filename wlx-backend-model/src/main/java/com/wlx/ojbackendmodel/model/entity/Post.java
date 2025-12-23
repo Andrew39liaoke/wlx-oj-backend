@@ -49,7 +49,20 @@ public class Post implements Serializable {
      * 创建用户 id
      */
     private Long userId;
+    /**
+     * 分区
+     */
+    private String zone;
 
+    /**
+     * 观看数
+     */
+    private Integer viewNum;
+
+    /**
+     * 更新人
+     */
+    private Long updater;
     /**
      * 创建时间
      */
