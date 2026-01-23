@@ -1,12 +1,15 @@
 package com.wlx.ojbackendmodel.model.vo;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.wlx.ojbackendmodel.model.dto.question.JudgeCase;
 import com.wlx.ojbackendmodel.model.dto.question.JudgeConfig;
 import com.wlx.ojbackendmodel.model.entity.Question;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -82,6 +85,11 @@ public class QuestionVO implements Serializable {
     private UserVO userVO;
 
     /**
+     * 判题用例
+     */
+    private List<JudgeCase> judgeCase;
+
+    /**
      * 包装类转对象
      *
      * @param questionVO
@@ -101,6 +109,10 @@ public class QuestionVO implements Serializable {
         if (voJudgeConfig != null) {
             question.setJudgeConfig(JSONUtil.toJsonStr(voJudgeConfig));
         }
+        List<JudgeCase> voJudgeCase = questionVO.getJudgeCase();
+        if (voJudgeCase != null) {
+            question.setJudgeCase(JSONUtil.toJsonStr(voJudgeCase));
+        }
         return question;
     }
 
@@ -116,10 +128,20 @@ public class QuestionVO implements Serializable {
         }
         QuestionVO questionVO = new QuestionVO();
         BeanUtils.copyProperties(question, questionVO);
-        List<String> tagList = JSONUtil.toList(question.getTags(), String.class);
+        List<String> tagList = new ArrayList<>();
+        if (question.getTags() != null && StrUtil.isNotBlank(question.getTags())) {
+            tagList = JSONUtil.toList(question.getTags(), String.class);
+        }
         questionVO.setTags(tagList);
         String judgeConfigStr = question.getJudgeConfig();
-        questionVO.setJudgeConfig(JSONUtil.toBean(judgeConfigStr, JudgeConfig.class));
+        if (judgeConfigStr != null && !judgeConfigStr.trim().isEmpty()) {
+            questionVO.setJudgeConfig(JSONUtil.toBean(judgeConfigStr, JudgeConfig.class));
+        }
+        List<JudgeCase> judgeCaseList = new ArrayList<>();
+        if (question.getJudgeCase() != null && StrUtil.isNotBlank(question.getJudgeCase())) {
+            judgeCaseList = JSONUtil.toList(question.getJudgeCase(), JudgeCase.class);
+        }
+        questionVO.setJudgeCase(judgeCaseList);
         return questionVO;
     }
 

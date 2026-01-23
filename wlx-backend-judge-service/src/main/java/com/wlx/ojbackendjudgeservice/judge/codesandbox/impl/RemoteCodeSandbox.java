@@ -2,7 +2,7 @@ package com.wlx.ojbackendjudgeservice.judge.codesandbox.impl;
 
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONUtil;
-import com.wlx.ojbackendcommon.common.ErrorCode;
+import com.wlx.ojbackendcommon.common.ResopnseCodeEnum;
 import com.wlx.ojbackendcommon.exception.BusinessException;
 import com.wlx.ojbackendjudgeservice.judge.codesandbox.CodeSandbox;
 import com.wlx.ojbackendmodel.model.codesandbox.ExecuteCodeRequest;
@@ -31,7 +31,7 @@ public class RemoteCodeSandbox implements CodeSandbox {
                 .execute()
                 .body();
         if (StringUtils.isBlank(responseStr)) {
-            throw new BusinessException(ErrorCode.API_REQUEST_ERROR, "executeCode remoteSandbox error, message = " + responseStr);
+            throw new BusinessException(ResopnseCodeEnum.API_REQUEST_ERROR, "executeCode remoteSandbox error, message = " + responseStr);
         }
         return JSONUtil.toBean(responseStr, ExecuteCodeResponse.class);
     }

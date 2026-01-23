@@ -3,7 +3,7 @@ package com.wlx.ojbackendpostservice.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.wlx.ojbackendcommon.common.ErrorCode;
+import com.wlx.ojbackendcommon.common.ResopnseCodeEnum;
 import com.wlx.ojbackendcommon.exception.ThrowUtils;
 import com.wlx.ojbackendmodel.model.dto.post.PostQueryRequest;
 import com.wlx.ojbackendmodel.model.entity.Post;
@@ -28,7 +28,7 @@ public class PostFavourServiceImpl extends ServiceImpl<PostFavourMapper, PostFav
 
     @Override
     public boolean addFavour(Long postId, Long userId) {
-        ThrowUtils.throwIf(postId == null || postId <= 0 || userId == null || userId <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(postId == null || postId <= 0 || userId == null || userId <= 0, ResopnseCodeEnum.PARAMS_ERROR);
         // 已经收藏则幂等返回 true
         PostFavour exist = this.lambdaQuery()
                 .eq(PostFavour::getPostId, postId)
@@ -38,24 +38,24 @@ public class PostFavourServiceImpl extends ServiceImpl<PostFavourMapper, PostFav
             return true;
         }
         Post post = postService.getById(postId);
-        ThrowUtils.throwIf(post == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(post == null, ResopnseCodeEnum.NOT_FOUND_ERROR);
         PostFavour favour = new PostFavour();
         favour.setPostId(postId);
         favour.setUserId(userId);
         favour.setCreateTime(new Date());
         boolean saveResult = this.save(favour);
-        ThrowUtils.throwIf(!saveResult, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!saveResult, ResopnseCodeEnum.OPERATION_ERROR);
         // 更新帖子收藏计数
         Integer favourNum = post.getFavourNum() == null ? 0 : post.getFavourNum();
         post.setFavourNum(favourNum + 1);
         boolean updateResult = postService.updateById(post);
-        ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!updateResult, ResopnseCodeEnum.OPERATION_ERROR);
         return true;
     }
 
     @Override
     public boolean removeFavour(Long postId, Long userId) {
-        ThrowUtils.throwIf(postId == null || postId <= 0 || userId == null || userId <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(postId == null || postId <= 0 || userId == null || userId <= 0, ResopnseCodeEnum.PARAMS_ERROR);
         PostFavour exist = this.lambdaQuery()
                 .eq(PostFavour::getPostId, postId)
                 .eq(PostFavour::getUserId, userId)
@@ -64,7 +64,7 @@ public class PostFavourServiceImpl extends ServiceImpl<PostFavourMapper, PostFav
             return true;
         }
         boolean removeResult = this.removeById(exist.getId());
-        ThrowUtils.throwIf(!removeResult, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!removeResult, ResopnseCodeEnum.OPERATION_ERROR);
         Post post = postService.getById(postId);
         if (post != null) {
             Integer favourNum = post.getFavourNum() == null ? 0 : post.getFavourNum();
@@ -76,7 +76,7 @@ public class PostFavourServiceImpl extends ServiceImpl<PostFavourMapper, PostFav
 
     @Override
     public Page<PostVO> getFavourPostVOPage(PostQueryRequest req) {
-        ThrowUtils.throwIf(req == null || req.getUserId() == null || req.getUserId() <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(req == null || req.getUserId() == null || req.getUserId() <= 0, ResopnseCodeEnum.PARAMS_ERROR);
         Page<PostFavour> page = new Page<>((int)req.getCurrent(), (int)req.getPageSize());
         QueryWrapper<PostFavour> wrapper = new QueryWrapper<>();
         wrapper.eq("user_id", req.getUserId()).orderByDesc("create_time");

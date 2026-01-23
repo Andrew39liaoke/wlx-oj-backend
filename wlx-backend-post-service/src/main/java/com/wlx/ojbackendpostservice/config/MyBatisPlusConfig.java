@@ -10,8 +10,7 @@ import org.springframework.context.annotation.Configuration;
 /**
  * MyBatis Plus 配置
  */
-@Configuration
-@MapperScan("com.wlx.ojbackenduserservice.mapper")
+@Configuration("postMyBatisPlusConfig")
 public class MyBatisPlusConfig {
 
     /**

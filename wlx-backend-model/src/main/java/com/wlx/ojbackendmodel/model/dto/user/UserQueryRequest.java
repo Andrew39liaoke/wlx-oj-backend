@@ -12,7 +12,7 @@ import java.io.Serializable;
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class UserQueryRequest extends PageRequest implements Serializable {
+public class  UserQueryRequest extends PageRequest implements Serializable {
     /**
      * id
      */
@@ -31,7 +31,7 @@ public class UserQueryRequest extends PageRequest implements Serializable {
     /**
      * 用户昵称
      */
-    private String userName;
+    private String NickName;
 
     /**
      * 简介

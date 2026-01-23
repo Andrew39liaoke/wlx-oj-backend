@@ -7,8 +7,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
 @EnableDiscoveryClient
-public class ojBackendGatewayApplication {
-
+public class  ojBackendGatewayApplication {
     public static void main(String[] args) {
         SpringApplication.run(ojBackendGatewayApplication.class, args);
     }

@@ -18,7 +18,7 @@ public class UserUpdateRequest implements Serializable {
     /**
      * 用户昵称
      */
-    private String userName;
+    private String NickName;
 
     /**
      * 用户头像

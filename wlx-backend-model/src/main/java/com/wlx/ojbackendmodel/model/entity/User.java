@@ -23,18 +23,17 @@ public class User implements Serializable {
     /**
      * 用户账号
      */
-    private String userAccount;
+    private String userName;
 
     /**
      * 用户密码
      */
     private String userPassword;
 
-
     /**
      * 用户昵称
      */
-    private String userName;
+    private String nickName;
 
     /**
      * 用户头像
@@ -46,10 +45,16 @@ public class User implements Serializable {
      */
     private String userProfile;
 
+
     /**
-     * 用户角色：user/admin/ban
+     * 微信开放平台id
      */
-    private String userRole;
+    private String unionId;
+
+    /**
+     * 公众号openId
+     */
+    private String mpOpenId;
 
     /**
      * 创建时间
@@ -66,6 +71,12 @@ public class User implements Serializable {
      */
     @TableLogic
     private Integer isDelete;
+
+    /**
+     * 用户角色
+     */
+    @TableField(exist = false)
+    private String role;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

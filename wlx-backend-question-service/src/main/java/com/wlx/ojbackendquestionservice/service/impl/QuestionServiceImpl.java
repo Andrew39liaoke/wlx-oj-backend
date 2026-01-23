@@ -3,7 +3,7 @@ package com.wlx.ojbackendquestionservice.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.wlx.ojbackendcommon.common.ErrorCode;
+import com.wlx.ojbackendcommon.common.ResopnseCodeEnum;
 import com.wlx.ojbackendcommon.constant.CommonConstant;
 import com.wlx.ojbackendcommon.exception.BusinessException;
 import com.wlx.ojbackendcommon.exception.ThrowUtils;
@@ -44,7 +44,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     @Override
     public void validQuestion(Question question, boolean add) {
         if (question == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+            throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR);
         }
         String title = question.getTitle();
         String content = question.getContent();
@@ -54,23 +54,23 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         String judgeConfig = question.getJudgeConfig();
         // 创建时，参数不能为空
         if (add) {
-            ThrowUtils.throwIf(StringUtils.isAnyBlank(title, content, tags), ErrorCode.PARAMS_ERROR);
+            ThrowUtils.throwIf(StringUtils.isAnyBlank(title, content, tags), ResopnseCodeEnum.PARAMS_ERROR);
         }
         // 有参数则校验
         if (StringUtils.isNotBlank(title) && title.length() > 80) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "标题过长");
+            throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR, "标题过长");
         }
         if (StringUtils.isNotBlank(content) && content.length() > 8192) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "内容过长");
+            throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR, "内容过长");
         }
         if (StringUtils.isNotBlank(answer) && answer.length() > 8192) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "答案过长");
+            throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR, "答案过长");
         }
         if (StringUtils.isNotBlank(judgeCase) && judgeCase.length() > 8192) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "判题用例过长");
+            throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR, "判题用例过长");
         }
         if (StringUtils.isNotBlank(judgeConfig) && judgeConfig.length() > 8192) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "判题配置过长");
+            throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR, "判题配置过长");
         }
     }
 
@@ -113,7 +113,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     }
 
     @Override
-    public QuestionVO getQuestionVO(Question question, HttpServletRequest request) {
+    public QuestionVO getQuestionVO(Question question) {
         QuestionVO questionVO = QuestionVO.objToVo(question);
         // 1. 关联查询用户信息
         Long userId = question.getUserId();
@@ -127,7 +127,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
     }
 
     @Override
-    public Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage, HttpServletRequest request) {
+    public Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage) {
         List<Question> questionList = questionPage.getRecords();
         Page<QuestionVO> questionVOPage = new Page<>(questionPage.getCurrent(), questionPage.getSize(), questionPage.getTotal());
         if (CollectionUtils.isEmpty(questionList)) {

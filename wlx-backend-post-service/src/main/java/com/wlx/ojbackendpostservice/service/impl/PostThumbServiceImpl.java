@@ -3,7 +3,7 @@ package com.wlx.ojbackendpostservice.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.wlx.ojbackendcommon.common.ErrorCode;
+import com.wlx.ojbackendcommon.common.ResopnseCodeEnum;
 import com.wlx.ojbackendcommon.exception.ThrowUtils;
 import com.wlx.ojbackendmodel.model.dto.post.PostQueryRequest;
 import com.wlx.ojbackendmodel.model.entity.Post;
@@ -28,7 +28,7 @@ public class PostThumbServiceImpl extends ServiceImpl<PostThumbMapper, PostThumb
 
     @Override
     public boolean addThumb(Long postId, Long userId) {
-        ThrowUtils.throwIf(postId == null || postId <= 0 || userId == null || userId <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(postId == null || postId <= 0 || userId == null || userId <= 0, ResopnseCodeEnum.PARAMS_ERROR);
         // 已经点赞则幂等返回 true
         PostThumb exist = this.lambdaQuery()
                 .eq(PostThumb::getPostId, postId)
@@ -38,24 +38,24 @@ public class PostThumbServiceImpl extends ServiceImpl<PostThumbMapper, PostThumb
             return true;
         }
         Post post = postService.getById(postId);
-        ThrowUtils.throwIf(post == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(post == null, ResopnseCodeEnum.NOT_FOUND_ERROR);
         PostThumb thumb = new PostThumb();
         thumb.setPostId(postId);
         thumb.setUserId(userId);
         thumb.setCreateTime(new Date());
         boolean saveResult = this.save(thumb);
-        ThrowUtils.throwIf(!saveResult, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!saveResult, ResopnseCodeEnum.OPERATION_ERROR);
         // 更新帖子点赞计数
         Integer thumbNum = post.getThumbNum() == null ? 0 : post.getThumbNum();
         post.setThumbNum(thumbNum + 1);
         boolean updateResult = postService.updateById(post);
-        ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!updateResult, ResopnseCodeEnum.OPERATION_ERROR);
         return true;
     }
 
     @Override
     public boolean removeThumb(Long postId, Long userId) {
-        ThrowUtils.throwIf(postId == null || postId <= 0 || userId == null || userId <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(postId == null || postId <= 0 || userId == null || userId <= 0, ResopnseCodeEnum.PARAMS_ERROR);
         PostThumb exist = this.lambdaQuery()
                 .eq(PostThumb::getPostId, postId)
                 .eq(PostThumb::getUserId, userId)
@@ -64,7 +64,7 @@ public class PostThumbServiceImpl extends ServiceImpl<PostThumbMapper, PostThumb
             return true;
         }
         boolean removeResult = this.removeById(exist.getId());
-        ThrowUtils.throwIf(!removeResult, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!removeResult, ResopnseCodeEnum.OPERATION_ERROR);
         Post post = postService.getById(postId);
         if (post != null) {
             Integer thumbNum = post.getThumbNum() == null ? 0 : post.getThumbNum();
@@ -76,7 +76,7 @@ public class PostThumbServiceImpl extends ServiceImpl<PostThumbMapper, PostThumb
 
     @Override
     public Page<PostVO> getThumbPostVOPage(PostQueryRequest req) {
-        ThrowUtils.throwIf(req == null || req.getUserId() == null || req.getUserId() <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(req == null || req.getUserId() == null || req.getUserId() <= 0, ResopnseCodeEnum.PARAMS_ERROR);
         Page<PostThumb> page = new Page<>((int) req.getCurrent(), (int) req.getPageSize());
         QueryWrapper<PostThumb> wrapper = new QueryWrapper<>();
         wrapper.eq("user_id", req.getUserId()).orderByDesc("create_time");

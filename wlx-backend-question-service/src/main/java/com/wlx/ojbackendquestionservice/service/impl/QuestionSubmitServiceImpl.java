@@ -3,7 +3,7 @@ package com.wlx.ojbackendquestionservice.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.wlx.ojbackendcommon.common.ErrorCode;
+import com.wlx.ojbackendcommon.common.ResopnseCodeEnum;
 import com.wlx.ojbackendcommon.constant.CommonConstant;
 import com.wlx.ojbackendcommon.exception.BusinessException;
 import com.wlx.ojbackendcommon.utils.SqlUtils;
@@ -14,6 +14,7 @@ import com.wlx.ojbackendmodel.model.entity.QuestionSubmit;
 import com.wlx.ojbackendmodel.model.entity.User;
 import com.wlx.ojbackendmodel.model.enums.QuestionSubmitLanguageEnum;
 import com.wlx.ojbackendmodel.model.enums.QuestionSubmitStatusEnum;
+import com.wlx.ojbackendmodel.model.enums.UserRoleEnum;
 import com.wlx.ojbackendmodel.model.vo.QuestionSubmitVO;
 import com.wlx.ojbackendquestionservice.mapper.QuestionSubmitMapper;
 import com.wlx.ojbackendquestionservice.rabbitmq.MyMessageProducer;
@@ -39,13 +40,6 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     private QuestionService questionService;
 
     @Resource
-    private UserFeignClient userFeignClient;
-
-    @Resource
-    @Lazy
-    private JudgeFeignClient judgeFeignClient;
-
-    @Resource
     private MyMessageProducer myMessageProducer;
 
     /**
@@ -61,13 +55,13 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         String language = questionSubmitAddRequest.getLanguage();
         QuestionSubmitLanguageEnum languageEnum = QuestionSubmitLanguageEnum.getEnumByValue(language);
         if (languageEnum == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "编程语言错误");
+            throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR, "编程语言错误");
         }
         long questionId = questionSubmitAddRequest.getQuestionId();
         // 判断实体是否存在，根据类别获取实体
         Question question = questionService.getById(questionId);
         if (question == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+            throw new BusinessException(ResopnseCodeEnum.NOT_FOUND_ERROR);
         }
         // 是否已提交题目
         long userId = loginUser.getId();
@@ -82,15 +76,11 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         questionSubmit.setJudgeInfo("{}");
         boolean save = this.save(questionSubmit);
         if (!save){
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
+            throw new BusinessException(ResopnseCodeEnum.SYSTEM_ERROR, "数据插入失败");
         }
         Long questionSubmitId = questionSubmit.getId();
         // 发送消息
         myMessageProducer.sendMessage("code_exchange", "my_routingKey", String.valueOf(questionSubmitId));
-        // 执行判题服务
-//        CompletableFuture.runAsync(() -> {
-//            judgeFeignClient.doJudge(questionSubmitId);
-//        });
         return questionSubmitId;
     }
 
@@ -131,7 +121,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         // 脱敏：仅本人和管理员能看见自己（提交 userId 和登录用户 id 不同）提交的代码
         long userId = loginUser.getId();
         // 处理脱敏
-        if (userId != questionSubmit.getUserId() && !userFeignClient.isAdmin(loginUser)) {
+        if (userId != questionSubmit.getUserId() && !UserRoleEnum.ADMIN.getValue().equals(loginUser.getRole())) {
             questionSubmitVO.setCode(null);
         }
         return questionSubmitVO;

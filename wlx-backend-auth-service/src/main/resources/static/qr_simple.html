@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>微信扫码登录（简单）</title>
+  <!-- CDN方式引入vue3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- CDN方式引入Axios -->
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <img :src="qrCode" />
+  </div>
+
+  <script>
+    // 1. vue实例配置信息
+    const appConfig = {
+      data() {
+        return {
+          qrCode: ""
+        };
+      },
+      methods: {
+        // 获取二维码的方法（示例）
+        getQrCode() {
+          let url = "http://d9563926.natappfree.cc/api/auth/wechat/qrCode";
+          axios.get(url).then(res => {
+            this.qrCode = res.data;
+          }).catch(err => {
+            console.error(err);
+          });
+        }
+      },
+      created() {
+        this.getQrCode();
+      }
+    };
+
+    // 2. 创建vue实例
+    const app = Vue.createApp(appConfig);
+    // 3. 渲染视图(id=app)
+    app.mount("#app");
+  </script>
+</body>
+</html>
+
+

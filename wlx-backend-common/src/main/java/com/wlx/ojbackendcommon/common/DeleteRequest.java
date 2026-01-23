@@ -9,7 +9,7 @@ import java.io.Serializable;
  *
  */
 @Data
-public class DeleteRequest implements Serializable {
+public class  DeleteRequest implements Serializable {
 
     /**
      * id

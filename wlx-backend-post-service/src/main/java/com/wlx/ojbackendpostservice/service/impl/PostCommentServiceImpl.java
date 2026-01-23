@@ -1,7 +1,8 @@
 package com.wlx.ojbackendpostservice.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.wlx.ojbackendcommon.common.ErrorCode;
+import com.wlx.ojbackendcommon.common.ResopnseCodeEnum;
 import com.wlx.ojbackendcommon.exception.ThrowUtils;
 import com.wlx.ojbackendmodel.model.dto.postComment.PostCommentRequest;
 import com.wlx.ojbackendmodel.model.entity.PostComment;
@@ -11,6 +12,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostComment> implements PostCommentService {
@@ -28,7 +30,7 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
         postComment.setUserId(userId);
         postComment.setCreateTime(new Date());
         boolean result = this.save(postComment);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!result, ResopnseCodeEnum.OPERATION_ERROR);
         return postComment.getId();
     }
 
@@ -41,10 +43,10 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
     @Override
     public boolean deleteComment(long id, long userId) {
         PostComment comment = this.getById(id);
-        ThrowUtils.throwIf(comment == null, ErrorCode.NOT_FOUND_ERROR);
-        ThrowUtils.throwIf(!comment.getUserId().equals(userId), ErrorCode.NO_AUTH_ERROR);
+        ThrowUtils.throwIf(comment == null, ResopnseCodeEnum.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(!comment.getUserId().equals(userId), ResopnseCodeEnum.NO_AUTH_ERROR);
         boolean result = this.removeById(id);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!result, ResopnseCodeEnum.OPERATION_ERROR);
         return result;
     }
 
@@ -57,15 +59,26 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
     @Override
     public boolean updateComment(PostCommentRequest req, long userId) {
         PostComment exist = this.getById(req.getId());
-        ThrowUtils.throwIf(exist == null, ErrorCode.NOT_FOUND_ERROR);
-        ThrowUtils.throwIf(!exist.getUserId().equals(userId), ErrorCode.NO_AUTH_ERROR);
+        ThrowUtils.throwIf(exist == null, ResopnseCodeEnum.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(!exist.getUserId().equals(userId), ResopnseCodeEnum.NO_AUTH_ERROR);
         PostComment comment = new PostComment();
         BeanUtils.copyProperties(req, comment);
         comment.setUserId(exist.getUserId());
         comment.setCreateTime(exist.getCreateTime());
         boolean result = this.updateById(comment);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!result, ResopnseCodeEnum.OPERATION_ERROR);
         return result;
+    }
+
+    /**
+     * 根据帖子ID获取评论列表
+     */
+    @Override
+    public List<PostComment> getCommentsByPostId(long postId) {
+        QueryWrapper<PostComment> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("postId", postId);
+        queryWrapper.orderByAsc("createTime");
+        return this.list(queryWrapper);
     }
 }
 

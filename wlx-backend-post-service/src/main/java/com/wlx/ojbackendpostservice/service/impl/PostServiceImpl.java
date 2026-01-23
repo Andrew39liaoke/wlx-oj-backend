@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
-import com.wlx.ojbackendcommon.common.ErrorCode;
+import com.wlx.ojbackendcommon.common.ResopnseCodeEnum;
 import com.wlx.ojbackendcommon.exception.ThrowUtils;
 import com.wlx.ojbackendmodel.model.dto.post.PostAddRequest;
 import com.wlx.ojbackendmodel.model.dto.post.PostQueryRequest;
@@ -31,7 +31,32 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         long current = postQueryRequest.getCurrent();
         long size = postQueryRequest.getPageSize();
         QueryWrapper<Post> wrapper = new QueryWrapper<>();
-        wrapper.like(StringUtils.isNotBlank(postQueryRequest.getTitle()), "title", postQueryRequest.getTitle());
+
+        // 联合模糊查询：标题、分区、标签
+        String title = postQueryRequest.getTitle();
+        String zone = postQueryRequest.getZone();
+        List<String> tags = postQueryRequest.getTags();
+
+        // 如果有查询条件，则构建联合查询
+        if (StringUtils.isNotBlank(title) || StringUtils.isNotBlank(zone) ||
+            (tags != null && !tags.isEmpty())) {
+            wrapper.and(w -> {
+                // 标题模糊查询
+                w.like(StringUtils.isNotBlank(title), "title", title);
+                // 分区模糊查询
+                w.like(StringUtils.isNotBlank(zone), "zone", zone);
+                // 标签模糊查询（JSON数组匹配）
+                if (tags != null && !tags.isEmpty()) {
+                    for (String tag : tags) {
+                        if (StringUtils.isNotBlank(tag)) {
+                            // 使用 LIKE 来进行模糊匹配，支持部分匹配
+                            w.like("tags", tag);
+                        }
+                    }
+                }
+            });
+        }
+
         Page<Post> postPage = this.page(new Page<>(current, size), wrapper);
         List<PostVO> postVOList = postPage.getRecords().stream().map(PostVO::objToVo).collect(Collectors.toList());
         Page<PostVO> page = new Page<>(postPage.getCurrent(), postPage.getSize(), postPage.getTotal());
@@ -65,25 +90,25 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         post.setThumbNum(0);
         post.setFavourNum(0);
         boolean result = this.save(post);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!result, ResopnseCodeEnum.OPERATION_ERROR);
         return post.getId();
     }
 
     @Override
     public boolean deletePost(long id, long userId) {
         Post post = this.getById(id);
-        ThrowUtils.throwIf(post == null, ErrorCode.NOT_FOUND_ERROR);
-        ThrowUtils.throwIf(!post.getUserId().equals(userId), ErrorCode.NO_AUTH_ERROR);
+        ThrowUtils.throwIf(post == null, ResopnseCodeEnum.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(!post.getUserId().equals(userId), ResopnseCodeEnum.NO_AUTH_ERROR);
         boolean result = this.removeById(id);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!result, ResopnseCodeEnum.OPERATION_ERROR);
         return result;
     }
 
     @Override
     public boolean updatePost(PostUpdateRequest postUpdateRequest, long userId) {
         Post exist = this.getById(postUpdateRequest.getId());
-        ThrowUtils.throwIf(exist == null, ErrorCode.NOT_FOUND_ERROR);
-        ThrowUtils.throwIf(!exist.getUserId().equals(userId), ErrorCode.NO_AUTH_ERROR);
+        ThrowUtils.throwIf(exist == null, ResopnseCodeEnum.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(!exist.getUserId().equals(userId), ResopnseCodeEnum.NO_AUTH_ERROR);
         Post post = new Post();
         BeanUtils.copyProperties(postUpdateRequest, post);
         post.setUserId(exist.getUserId());
@@ -92,7 +117,7 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
             post.setTags(GSON.toJson(tags));
         }
         boolean result = this.updateById(post);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!result, ResopnseCodeEnum.OPERATION_ERROR);
         return result;
     }
 }

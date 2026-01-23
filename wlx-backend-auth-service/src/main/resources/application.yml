@@ -1,0 +1,62 @@
+﻿spring:
+  application:
+    name: wlx-backend-auth-service
+  profiles:
+    active: dev
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  session:
+    store-type: redis
+    timeout: 2592000
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/wlxoj
+    username: root
+    password: 1234
+  servlet:
+    multipart:
+      # ????
+      max-file-size: 10MB
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+  data:
+    redis:
+      database: 1
+      host: localhost
+      port: 6379
+      timeout: 5000
+      #password: 123321
+server:
+  address: 0.0.0.0
+  port: 8104
+  servlet:
+    context-path: /api/auth
+    # cookie 30 ???
+    session:
+      cookie:
+        max-age: 2592000
+        path: /api
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDelete
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+tencent:
+  wechat:
+    # 微信公众平台测试号的appID
+    app-id: wxa19bf4e6dfc714b4
+    # 微信公众平台测试号的appsecret
+    app-secret: 9c785641d7b1f37d8da7b04416cb16c5
+    # 微信公众平台网页登录服务->网页帐号的授权回调页面域名(要带http://前缀)
+    domain: http://d9563926.natappfree.cc
+    # 本地处理扫码结果的controller方法访问地址
+    redirect-uri: /api/auth/wechat/login
+knife4j:
+  enable: true
