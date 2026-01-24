@@ -20,4 +20,25 @@ public class SqlUtils {
         }
         return !StringUtils.containsAny(sortField, "=", "(", ")", " ");
     }
+
+    /**
+     * 将驼峰命名转换为下划线命名
+     *
+     * @param camelCase 驼峰命名的字符串
+     * @return 下划线命名的字符串
+     */
+    public static String camelToSnake(String camelCase) {
+        if (StringUtils.isBlank(camelCase)) {
+            return camelCase;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (char c : camelCase.toCharArray()) {
+            if (Character.isUpperCase(c)) {
+                sb.append('_').append(Character.toLowerCase(c));
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
 }

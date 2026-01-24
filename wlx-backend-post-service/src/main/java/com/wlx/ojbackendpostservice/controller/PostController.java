@@ -90,18 +90,23 @@ public class PostController {
         if (id == null || id <= 0) {
             throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR);
         }
+        System.out.println("id = " + id);
         Post post = postService.getById(id);
         if (post == null) {
             throw new BusinessException(ResopnseCodeEnum.NOT_FOUND_ERROR);
         }
-        return Result.success(PostVO.objToVo(post));
+        Long userId = post.getUserId();
+        User user = userFeignClient.getById(userId);
+        PostVO postVO = PostVO.objToVo(post);
+        postVO.setUser(userFeignClient.getUserVO(user));
+        return Result.success(postVO);
     }
 
     /**
      * 分页查询帖子。
      * @return 分页对象
      */
-    @PostMapping("/page")
+    @PostMapping( "/page")
     @Operation(summary = "分页查询帖子")
     public ResponseEntity<Page<PostVO>> page(@RequestBody PostQueryRequest req) {
         return Result.success(postService.getPostVOPage(req));

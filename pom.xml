@@ -16,6 +16,7 @@
         <module>wlx-backend-question-service</module>
         <module>wlx-backend-service-client</module>
         <module>wlx-backend-auth-service</module>
+        <module>wlx-backend-file-service</module>
     </modules>
     <properties>
         <java.version>17</java.version>

@@ -76,8 +76,8 @@ public class PostCommentServiceImpl extends ServiceImpl<PostCommentMapper, PostC
     @Override
     public List<PostComment> getCommentsByPostId(long postId) {
         QueryWrapper<PostComment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("postId", postId);
-        queryWrapper.orderByAsc("createTime");
+        queryWrapper.eq("post_id", postId);
+        queryWrapper.orderByAsc("create_time");
         return this.list(queryWrapper);
     }
 }

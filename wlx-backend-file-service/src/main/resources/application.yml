@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: wlx-backend-file-service
+  profiles:
+    active: dev
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  servlet:
+    multipart:
+      # 文件大小限制
+      max-file-size: 100MB
+      # 请求大小限制
+      max-request-size: 100MB
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+
+server:
+  address: 0.0.0.0
+  port: 8105
+  servlet:
+    context-path: /api/file
+
+# 文件存储配置
+file:
+  storage:
+    type: local  # local, oss, cos, minio
+    local:
+      path: ./upload  # 本地存储路径
+    oss:
+      endpoint: https://oss-cn-hangzhou.aliyuncs.com
+      access-key-id: your-access-key-id
+      access-key-secret: your-access-key-secret
+      bucket-name: your-bucket-name
+    cos:
+      secret-id: your-secret-id
+      secret-key: your-secret-key
+      region: ap-beijing
+      bucket-name: your-bucket-name
+    minio:
+      endpoint: http://localhost:9000
+      access-key: your-access-key
+      secret-key: your-secret-key
+      bucket-name: your-bucket-name
+
+knife4j:
+  enable: true

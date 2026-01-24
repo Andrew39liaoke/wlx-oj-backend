@@ -13,7 +13,7 @@ import java.util.Date;
 @Data
 public class PostThumb implements Serializable {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long postId;

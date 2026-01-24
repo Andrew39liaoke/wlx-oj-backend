@@ -23,7 +23,7 @@ public class PostCommentVO implements Serializable {
 
     private String content;
 
-    private Long userId;
+    private UserVO userVO;
 
     private Date createTime;
 

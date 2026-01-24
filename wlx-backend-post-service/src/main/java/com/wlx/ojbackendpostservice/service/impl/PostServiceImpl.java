@@ -14,17 +14,25 @@ import com.wlx.ojbackendmodel.model.entity.User;
 import com.wlx.ojbackendmodel.model.vo.PostVO;
 import com.wlx.ojbackendpostservice.mapper.PostMapper;
 import com.wlx.ojbackendpostservice.service.PostService;
+import com.wlx.ojbackendserviceclient.service.UserFeignClient;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements PostService {
 
     private final static Gson GSON = new Gson();
+
+    @Autowired
+    private UserFeignClient userFeignClient;
 
     @Override
     public Page<PostVO> getPostVOPage(PostQueryRequest postQueryRequest) {
@@ -58,7 +66,24 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
         }
 
         Page<Post> postPage = this.page(new Page<>(current, size), wrapper);
-        List<PostVO> postVOList = postPage.getRecords().stream().map(PostVO::objToVo).collect(Collectors.toList());
+
+        // 获取所有用户ID
+        Set<Long> userIdSet = postPage.getRecords().stream().map(Post::getUserId).collect(Collectors.toSet());
+        // 批量查询用户信息
+        Map<Long, User> userIdUserMap = userFeignClient.listByIds(userIdSet).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        // 转换 PostVO 并设置用户信息
+        List<PostVO> postVOList = postPage.getRecords().stream().map(post -> {
+            PostVO postVO = PostVO.objToVo(post);
+            Long userId = post.getUserId();
+            if (userId != null && userIdUserMap.containsKey(userId)) {
+                User user = userIdUserMap.get(userId);
+                postVO.setUser(userFeignClient.getUserVO(user));
+            }
+            return postVO;
+        }).collect(Collectors.toList());
+
         Page<PostVO> page = new Page<>(postPage.getCurrent(), postPage.getSize(), postPage.getTotal());
         page.setRecords(postVOList);
         return page;

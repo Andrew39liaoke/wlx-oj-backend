@@ -8,9 +8,14 @@ import com.wlx.ojbackendcommon.common.Result;
 import com.wlx.ojbackendcommon.exception.BusinessException;
 import com.wlx.ojbackendmodel.model.dto.postComment.PostCommentRequest;
 import com.wlx.ojbackendmodel.model.entity.PostComment;
+import com.wlx.ojbackendmodel.model.entity.User;
 import com.wlx.ojbackendmodel.model.vo.PostCommentVO;
 import com.wlx.ojbackendpostservice.service.PostCommentService;
 import java.util.List;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import com.wlx.ojbackendserviceclient.service.UserFeignClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -83,8 +88,27 @@ public class PostCommentController {
             throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR);
         }
         List<PostComment> comments = postCommentService.getCommentsByPostId(postId);
+
+        // 获取所有用户ID
+        Set<Long> userIdSet = comments.stream()
+                .map(PostComment::getUserId)
+                .collect(Collectors.toSet());
+
+        // 批量查询用户信息
+        Map<Long, List<User>> userIdUserListMap = userFeignClient.listByIds(userIdSet).stream()
+                .collect(Collectors.groupingBy(User::getId));
+
+        // 转换 PostCommentVO 并设置用户信息
         List<PostCommentVO> commentVOs = comments.stream()
-                .map(PostCommentVO::objToVo)
+                .map(comment -> {
+                    PostCommentVO commentVO = PostCommentVO.objToVo(comment);
+                    Long userId = comment.getUserId();
+                    if (userId != null && userIdUserListMap.containsKey(userId)) {
+                        User user = userIdUserListMap.get(userId).get(0);
+                        commentVO.setUserVO(userFeignClient.getUserVO(user));
+                    }
+                    return commentVO;
+                })
                 .toList();
         return Result.success(commentVOs);
     }

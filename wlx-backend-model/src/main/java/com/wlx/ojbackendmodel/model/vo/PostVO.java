@@ -58,12 +58,6 @@ public class PostVO implements Serializable {
      * 分区名称
      */
     private String zoneName;
-
-    /**
-     * 标签列表（json 数组）
-     */
-    private List<String> tags;
-
     /**
      * 创建用户 id
      */
