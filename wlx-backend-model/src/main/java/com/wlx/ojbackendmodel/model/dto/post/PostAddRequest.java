@@ -34,5 +34,10 @@ public class PostAddRequest implements Serializable {
     @NotNull(message = "请输入至少一个标签")
     private List<String> tags;
 
+    /**
+     * 帖子封面
+     */
+    private String cover;
+
     private static final long serialVersionUID = 1L;
 }

@@ -18,7 +18,8 @@ import java.util.List;
 @Slf4j
 public class JwtUtil {
     private static final String SECRET = "zxcvbnmfdasaererafafafafafafakjlkjalkfafadffdafadfafafaaafadfadfaf1234567890";
-    private static final long EXPIRE = 60 * 24 * 7;
+    // 有效期：1 天（以分钟为单位）
+    private static final long EXPIRE = 60 * 24;
     public static final String HEADER = "Authorization";
 
     /**
@@ -26,7 +27,7 @@ public class JwtUtil {
      */
     public static String generateToken(String username, String userType) {
         SecretKey signingKey = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
-        //过期时间
+        // 过期时间（当前时间 + EXPIRE 分钟）
         LocalDateTime tokenExpirationTime = LocalDateTime.now().plusMinutes(EXPIRE);
         return Jwts.builder()
                 .signWith(signingKey, Jwts.SIG.HS512)

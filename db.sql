@@ -6,6 +6,7 @@ create table post
     zone        varchar(255)                       null comment '帖子分区',
     content     text                               null comment '内容',
     tags        varchar(1024)                      null comment '标签列表（json 数组）',
+    cover       varchar(1024)                      null comment '帖子封面',
     view_num    int      default 0                 null comment '观看数',
     thumb_num   int      default 0                 null comment '点赞数',
     favour_num  int      default 0                 null comment '收藏数',
@@ -161,3 +162,59 @@ INSERT INTO post_comment (id, parent_id, post_id, content, user_id, create_time,
 (3003329711446446086, 3003329711446446083, 2003329711446446084, '还可以设置延时请求，避免被反爬虫检测', 2012025463920201732, '2026-01-24 12:30:00', 0),
 (3003329711446446087, 3003329711446446084, 2003329711446446084, '你爬取了什么网站？能分享一下经验吗？', 2012025463920201733, '2026-01-24 12:35:00', 0),
 (3003329711446446088, 3003329711446446087, 2003329711446446084, '我爬取了豆瓣电影top250，很有成就感！', 2012025463920201731, '2026-01-24 12:40:00', 0);
+
+CREATE TABLE `file_info` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `file_name` varchar(255) NOT NULL COMMENT '原始文件名',
+    `file_path` varchar(500) NOT NULL COMMENT '文件存储路径',
+    `file_size` bigint NOT NULL COMMENT '文件大小(字节)',
+    `file_type` varchar(100) NOT NULL COMMENT '文件类型',
+    `file_url` varchar(500) NOT NULL COMMENT '文件访问URL',
+    `user_id` bigint NOT NULL COMMENT '上传用户ID',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `is_delete` tinyint DEFAULT 0 COMMENT '是否删除',
+    PRIMARY KEY (`id`),
+    INDEX `idx_user_id` (`user_id`),
+    INDEX `idx_create_time` (`create_time`)
+) COMMENT='文件信息表';
+
+-- 班级表
+CREATE TABLE `class`
+(
+    `id`              bigint          NOT NULL AUTO_INCREMENT COMMENT '班级id',
+    `teacher_id`      bigint          NOT NULL COMMENT '教师id',
+    `name`            varchar(255) NOT NULL COMMENT '班级名称',
+    `invitation_code` varchar(255) NOT NULL COMMENT '邀请码',
+    `join_number`     int          DEFAULT 0 COMMENT '加入人数',
+    `file_info_id`    bigint          NULL COMMENT '文件信息id',
+    `create_time`     datetime     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`     datetime     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    INDEX `idx_teacher_id` (`teacher_id`),
+    INDEX `idx_invitation_code` (`invitation_code`),
+    INDEX `idx_file_info_id` (`file_info_id`)
+) COMMENT='班级';
+
+-- 班级题目关联表
+CREATE TABLE `class_problem`
+(
+    `id`         bigint    NOT NULL AUTO_INCREMENT COMMENT '班级题目id',
+    `problem_id` bigint    NOT NULL COMMENT '题库id',
+    `class_id`   bigint    NOT NULL COMMENT '班级id',
+    PRIMARY KEY (`id`),
+    INDEX `idx_problem_id` (`problem_id`),
+    INDEX `idx_class_id` (`class_id`)
+) COMMENT='班级题目关联表';
+
+-- 学生班级关联表
+CREATE TABLE `student_class`
+(
+    `id`         bigint NOT NULL AUTO_INCREMENT COMMENT '主键id',
+    `student_id` bigint NOT NULL COMMENT '学生id',
+    `class_id`   bigint NOT NULL COMMENT '班级id',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    INDEX `idx_student_id` (`student_id`),
+    INDEX `idx_class_id` (`class_id`),
+    UNIQUE INDEX `uk_student_class` (`student_id`, `class_id`)
+) COMMENT='学生班级关联表';

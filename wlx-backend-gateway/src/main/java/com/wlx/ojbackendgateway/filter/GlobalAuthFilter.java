@@ -18,6 +18,8 @@ import java.nio.charset.StandardCharsets;
 import jakarta.annotation.Resource;
 import com.wlx.ojbackendgateway.config.WhiteList;
 import io.jsonwebtoken.Claims;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import static com.wlx.ojbackendcommon.constant.RedisConstant.TOKEN_PREFIX;
 
 @Component
 public class GlobalAuthFilter implements GlobalFilter, Ordered {
@@ -25,6 +27,8 @@ public class GlobalAuthFilter implements GlobalFilter, Ordered {
     private AntPathMatcher antPathMatcher = new AntPathMatcher();
     @Resource
     private WhiteList whiteList;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -70,6 +74,16 @@ public class GlobalAuthFilter implements GlobalFilter, Ordered {
                 response.setStatusCode(HttpStatus.UNAUTHORIZED);
                 DataBufferFactory dataBufferFactory = response.bufferFactory();
                 DataBuffer dataBuffer = dataBufferFactory.wrap("token已过期，请重新登录".getBytes(StandardCharsets.UTF_8));
+                return response.writeWith(Mono.just(dataBuffer));
+            }
+            // 继续校验：确保 Redis 中存在该 token（用户未登出 / token 未被服务端删除）
+            String redisKey = TOKEN_PREFIX + token;
+            Boolean exists = stringRedisTemplate.hasKey(redisKey);
+            if (exists == null || !exists) {
+                ServerHttpResponse response = exchange.getResponse();
+                response.setStatusCode(HttpStatus.UNAUTHORIZED);
+                DataBufferFactory dataBufferFactory = response.bufferFactory();
+                DataBuffer dataBuffer = dataBufferFactory.wrap("token 无效或已登出".getBytes(StandardCharsets.UTF_8));
                 return response.writeWith(Mono.just(dataBuffer));
             }
         } catch (Exception e) {

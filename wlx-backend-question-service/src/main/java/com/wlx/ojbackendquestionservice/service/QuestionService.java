@@ -44,4 +44,12 @@ public interface QuestionService extends IService<Question> {
      */
     Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage);
     
+    /**
+     * 获取题目的解答过程
+     *
+     * @param questionId 题目ID
+     * @return 题目解答，如果不存在返回null
+     */
+    String getAnswerByQuestionId(Long questionId);
+
 }

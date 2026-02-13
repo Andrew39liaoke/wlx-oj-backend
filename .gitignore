@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Sensitive Config ###
+**/src/main/resources/application.yml
+**/src/main/resources/application-*.yml

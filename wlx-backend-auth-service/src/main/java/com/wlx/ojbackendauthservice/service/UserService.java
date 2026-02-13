@@ -11,6 +11,7 @@ import com.wlx.ojbackendmodel.model.wx.wxUser;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户服务
@@ -95,5 +96,21 @@ public interface UserService extends IService<User> {
     List<String> getRoleNamesByUsername(String username);
     String getUserTypeByRoles(List<String> roles);
     User findOrCreateByWxOpenId(wxUser wxUser);
+
+    /**
+     * 根据学生ID查询其所在的所有班级
+     *
+     * @param studentId 学生ID
+     * @return 班级信息列表，包含班级ID和班级名称
+     */
+    List<Map<String, Object>> getStudentClasses(Long studentId);
+
+    /**
+     * 根据学生ID查询其所在班级的所有题目
+     *
+     * @param studentId 学生ID
+     * @return 题目信息列表，包含题目ID和标题
+     */
+    List<Map<String, Object>> getStudentClassProblems(Long studentId);
 
 }

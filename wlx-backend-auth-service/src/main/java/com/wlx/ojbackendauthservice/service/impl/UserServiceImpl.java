@@ -6,6 +6,10 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
 import com.wlx.ojbackendauthservice.mapper.UserMapper;
+import com.wlx.ojbackendauthservice.mapper.StudentClassMapper;
+import com.wlx.ojbackendauthservice.mapper.ClassMapper;
+import com.wlx.ojbackendauthservice.mapper.ClassProblemMapper;
+import com.wlx.ojbackendauthservice.mapper.QuestionMapper;
 import com.wlx.ojbackendauthservice.service.*;
 import com.wlx.ojbackendcommon.common.ResopnseCodeEnum;
 import com.wlx.ojbackendcommon.constant.CommonConstant;
@@ -28,7 +32,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -61,6 +67,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private StudentClassMapper studentClassMapper;
+
+    @Resource
+    private ClassMapper classMapper;
+
+    @Resource
+    private ClassProblemMapper classProblemMapper;
+
+    @Resource
+    private QuestionMapper questionMapper;
 
     private static final Gson GSON = new Gson();
 
@@ -376,5 +394,103 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
         return queryWrapper;
+    }
+
+    /**
+     * 根据学生ID查询其所在的所有班级
+     *
+     * @param studentId 学生ID
+     * @return 班级信息列表，包含班级ID和班级名称
+     */
+    @Override
+    public List<Map<String, Object>> getStudentClasses(Long studentId) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (studentId == null) {
+            return result;
+        }
+        // 查询学生加入的所有班级关联记录
+        List<StudentClass> studentClasses = studentClassMapper.selectList(
+                Wrappers.<StudentClass>lambdaQuery().eq(StudentClass::getStudentId, studentId)
+        );
+        if (CollectionUtils.isNotEmpty(studentClasses)) {
+            // 获取所有班级ID
+            List<Long> classIds = studentClasses.stream()
+                    .map(StudentClass::getClassId)
+                    .collect(Collectors.toList());
+            // 批量查询班级信息
+            List<com.wlx.ojbackendmodel.model.entity.Class> classList = classMapper.selectBatchIds(classIds);
+            if (CollectionUtils.isNotEmpty(classList)) {
+                // 构建班级ID到班级对象的映射
+                Map<Long, com.wlx.ojbackendmodel.model.entity.Class> classMap = classList.stream()
+                        .collect(Collectors.toMap(com.wlx.ojbackendmodel.model.entity.Class::getId, c -> c));
+                // 按原始顺序构建返回结果
+                for (StudentClass sc : studentClasses) {
+                    com.wlx.ojbackendmodel.model.entity.Class classInfo = classMap.get(sc.getClassId());
+                    if (classInfo != null) {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("班级id", classInfo.getId());
+                        map.put("班级名称", classInfo.getName());
+                        result.add(map);
+                    }
+                }
+            }
+        }
+        log.info("根据学生ID查询班级信息: studentId={}, 结果={}", studentId, result);
+        return result;
+    }
+
+    /**
+     * 根据学生ID查询其所在班级的所有题目
+     *
+     * @param studentId 学生ID
+     * @return 题目信息列表，包含题目ID和标题
+     */
+    @Override
+    public List<Map<String, Object>> getStudentClassProblems(Long studentId) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (studentId == null) {
+            return result;
+        }
+        // 先查询学生所在的所有班级
+        List<Map<String, Object>> classes = getStudentClasses(studentId);
+        if (CollectionUtils.isEmpty(classes)) {
+            log.info("学生未加入任何班级: studentId={}", studentId);
+            return result;
+        }
+        // 收集所有班级ID
+        List<Long> classIds = classes.stream()
+                .map(c -> (Long) c.get("班级id"))
+                .collect(Collectors.toList());
+        // 查询这些班级中的所有题目关联
+        List<ClassProblem> classProblems = classProblemMapper.selectList(
+                Wrappers.<ClassProblem>lambdaQuery().in(ClassProblem::getClassId, classIds)
+        );
+        if (CollectionUtils.isEmpty(classProblems)) {
+            log.info("班级中没有题目: studentId={}, classIds={}", studentId, classIds);
+            return result;
+        }
+        // 收集所有题目ID
+        List<Long> problemIds = classProblems.stream()
+                .map(ClassProblem::getProblemId)
+                .collect(Collectors.toList());
+        // 批量查询题目信息
+        List<Question> questions = questionMapper.selectBatchIds(problemIds);
+        if (CollectionUtils.isNotEmpty(questions)) {
+            // 构建题目ID到题目对象的映射
+            Map<Long, Question> questionMap = questions.stream()
+                    .collect(Collectors.toMap(Question::getId, q -> q));
+            // 按去重后的顺序构建返回结果
+            for (ClassProblem cp : classProblems) {
+                Question question = questionMap.get(cp.getProblemId());
+                if (question != null) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("题目id", question.getId());
+                    map.put("题目标题", question.getTitle());
+                    result.add(map);
+                }
+            }
+        }
+        log.info("根据学生ID查询班级题目: studentId={}, 结果数量={}", studentId, result.size());
+        return result;
     }
 }

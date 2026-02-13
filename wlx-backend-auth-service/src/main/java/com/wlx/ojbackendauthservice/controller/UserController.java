@@ -25,6 +25,7 @@ import org.apache.shiro.SecurityUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
 import java.util.List;
 
@@ -85,7 +86,15 @@ public class UserController {
     @GetMapping("/get/login")
     public ResponseEntity<LoginUserVO> getLoginUser(HttpServletRequest request) {
         String token = request.getHeader(JwtUtil.HEADER);
-        User user = userService.getLoginUser(token);
+        if (StringUtils.isBlank(token)) {
+            throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR);
+        }
+        String username = JwtUtil.getClaimsByToken(token).getSubject();
+        if (StringUtils.isBlank(username)) {
+            throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR);
+        }
+        User user = userService.getOne(new LambdaQueryWrapper<User>().eq(User::getUserName, username));
+        ThrowUtils.throwIf(user == null, ResopnseCodeEnum.NOT_FOUND_ERROR);
         String type = JwtUtil.getUserTypeFromToken(token);
         LoginUserVO loginUserVO = userService.getLoginUserVO(user);
         loginUserVO.setUserRole(type);
@@ -144,10 +153,17 @@ public class UserController {
         }
         User user = new User();
         BeanUtils.copyProperties(userUpdateRequest, user);
-        Role role = new Role();
-        role.setValue(userUpdateRequest.getUserRole());
-        role.setName(UserRoleEnum.getEnumByValue(userUpdateRequest.getUserRole()).getText());
-        boolean save = roleService.save(role);
+        // 如果未提供 userRole，则不修改角色
+        if (userUpdateRequest.getUserRole() != null) {
+            UserRoleEnum userRoleEnum = UserRoleEnum.getEnumByValue(userUpdateRequest.getUserRole());
+            // 如果枚举存在，则保存/更新角色；枚举不存在则跳过角色修改（不抛异常）
+            if (userRoleEnum != null) {
+                Role role = new Role();
+                role.setValue(userUpdateRequest.getUserRole());
+                role.setName(userRoleEnum.getText());
+                roleService.save(role);
+            }
+        }
         boolean result = userService.updateById(user);
         ThrowUtils.throwIf(!result, ResopnseCodeEnum.OPERATION_ERROR);
         return Result.success(true);
@@ -236,20 +252,22 @@ public class UserController {
     @PostMapping("/update/my")
     public ResponseEntity<Boolean> updateMyUser(@RequestBody UserUpdateMyRequest userUpdateMyRequest,
                                                 HttpServletRequest request) {
-        if (userUpdateMyRequest == null) {
+        if (userUpdateMyRequest == null || userUpdateMyRequest.getUserId() == null) {
             throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR);
         }
-        User loginUser = userService.getLoginUser(request.getHeader(JwtUtil.HEADER));
         User user = new User();
         BeanUtils.copyProperties(userUpdateMyRequest, user);
-        user.setId(loginUser.getId());
+        user.setId(userUpdateMyRequest.getUserId());
         boolean result = userService.updateById(user);
         ThrowUtils.throwIf(!result, ResopnseCodeEnum.OPERATION_ERROR);
         return Result.success(true);
     }
+
     @GetMapping("/logout")
-    public ResponseEntity<String> logout() {
-        // 退出登录
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+        // 从 Redis 中删除 token（通过 service 层）
+        userService.userLogout(request);
+        // 退出登录（Shiro 相关）
         SecurityUtils.getSubject().logout();
         return Result.success("退出成功");
     }

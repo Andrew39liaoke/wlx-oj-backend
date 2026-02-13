@@ -70,7 +70,7 @@ public class PostCommentController {
 
     @GetMapping("/get/{id}")
     @Operation(summary = "获取评论")
-    public ResponseEntity<PostCommentVO> getInfo(@PathVariable Long id) {
+    public ResponseEntity<PostCommentVO> getInfo(@PathVariable("id") Long id) {
         if (id == null || id <= 0) {
             throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR);
         }
@@ -83,7 +83,7 @@ public class PostCommentController {
 
     @GetMapping("/post/{postId}")
     @Operation(summary = "获取帖子的评论列表")
-    public ResponseEntity<List<PostCommentVO>> getPostComments(@PathVariable Long postId) {
+    public ResponseEntity<List<PostCommentVO>> getPostComments(@PathVariable("postId") Long postId) {
         if (postId == null || postId <= 0) {
             throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR);
         }

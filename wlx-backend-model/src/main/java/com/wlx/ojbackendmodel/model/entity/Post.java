@@ -36,6 +36,11 @@ public class Post implements Serializable {
     private String tags;
 
     /**
+     * 帖子封面
+     */
+    private String cover;
+
+    /**
      * 点赞数
      */
     private Integer thumbNum;

@@ -152,6 +152,23 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         return questionVOPage;
     }
 
+    /**
+     * 获取题目的解答过程
+     *
+     * @param questionId 题目ID
+     * @return 题目解答，如果不存在返回null
+     */
+    @Override
+    public String getAnswerByQuestionId(Long questionId) {
+        if (questionId == null) {
+            return null;
+        }
+        Question question = this.getById(questionId);
+        if (question != null) {
+            return question.getAnswer();
+        }
+        return null;
+    }
 
 }
 

@@ -86,7 +86,7 @@ public class PostController {
      */
     @GetMapping("/getInfo/{id}")
     @Operation(summary = "根据主键获取帖子")
-    public ResponseEntity<PostVO> getInfo(@PathVariable Long id) {
+    public ResponseEntity<PostVO> getInfo(@PathVariable("id") Long id) {
         if (id == null || id <= 0) {
             throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR);
         }

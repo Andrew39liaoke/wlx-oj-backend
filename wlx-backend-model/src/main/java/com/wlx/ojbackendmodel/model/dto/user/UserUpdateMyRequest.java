@@ -12,6 +12,16 @@ import java.io.Serializable;
 public class UserUpdateMyRequest implements Serializable {
 
     /**
+     * 用户 id
+     */
+    private Long userId;
+
+    /**
+     * 用户密码（用于修改密码）
+     */
+    private String userPassword;
+
+    /**
      * 用户昵称
      */
     private String nickName;

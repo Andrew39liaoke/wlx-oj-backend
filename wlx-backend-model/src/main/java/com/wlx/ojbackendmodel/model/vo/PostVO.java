@@ -84,6 +84,11 @@ public class PostVO implements Serializable {
     private List<String> tagList;
 
     /**
+     * 帖子封面
+     */
+    private String cover;
+
+    /**
      * 创建人信息
      */
     private UserVO user;

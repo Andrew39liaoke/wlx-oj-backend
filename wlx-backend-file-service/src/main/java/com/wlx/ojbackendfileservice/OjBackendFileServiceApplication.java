@@ -12,7 +12,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @ComponentScan("com.wlx")
 @EnableDiscoveryClient
 @EnableFeignClients(basePackages = {"com.wlx.ojbackendserviceclient.service"})
-public class OjBackendFileServiceApplication {
+public class                           OjBackendFileServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(OjBackendFileServiceApplication.class, args);
     }
