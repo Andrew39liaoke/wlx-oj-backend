@@ -1,6 +1,7 @@
 package com.wlx.ojbackendcommon.common;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
@@ -8,6 +9,7 @@ import java.io.Serializable;
  * 通用返回类
  */
 @Data
+@NoArgsConstructor
 public class ResponseEntity<T> implements Serializable {
 
     private int code;

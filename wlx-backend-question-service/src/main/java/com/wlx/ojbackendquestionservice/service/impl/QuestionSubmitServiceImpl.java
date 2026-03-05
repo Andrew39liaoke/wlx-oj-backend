@@ -31,11 +31,16 @@ import org.springframework.stereotype.Service;
 import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Date;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.YearMonth;
+import java.util.ArrayList;
 
 @Service
 public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper, QuestionSubmit>
-    implements QuestionSubmitService {
-    
+        implements QuestionSubmitService {
+
     @Resource
     private QuestionService questionService;
 
@@ -79,6 +84,8 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
             throw new BusinessException(ResopnseCodeEnum.SYSTEM_ERROR, "数据插入失败");
         }
         Long questionSubmitId = questionSubmit.getId();
+        // 提交成功，题目的提交数加1
+        questionService.incrementSubmitNum(questionId);
         // 发送消息
         myMessageProducer.sendMessage("code_exchange", "my_routingKey", String.valueOf(questionSubmitId));
         return questionSubmitId;
@@ -142,8 +149,39 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
     }
 
 
+    @Override
+    public List<Integer> getSubmitCalendar(int year, int month, Long userId) {
+        if (userId == null || userId <= 0) {
+            return new ArrayList<>();
+        }
+        // 根据年份和月份构建起始时间和结束时间
+        YearMonth yearMonth = YearMonth.of(year, month);
+        LocalDate startDate = yearMonth.atDay(1);
+        LocalDate endDate = yearMonth.atEndOfMonth();
+
+        Date startTime = Date.from(startDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        // 结束时间需要到该月最后一天的 23:59:59，这里简便处理，设为下一天的 00:00:00 之前
+        Date endTime = Date.from(endDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+        // 查询该用户在该时间段内的所有提交记录
+        QueryWrapper<QuestionSubmit> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", userId);
+        queryWrapper.ge("create_time", startTime);
+        queryWrapper.lt("create_time", endTime);
+        // 只查询必要字段
+        queryWrapper.select("create_time");
+
+        List<QuestionSubmit> submitList = this.list(queryWrapper);
+
+        // 提取日期并去重
+        return submitList.stream()
+                .map(submit -> {
+                    LocalDate date = submit.getCreateTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                    return date.getDayOfMonth();
+                })
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
 }
-
-
-
-

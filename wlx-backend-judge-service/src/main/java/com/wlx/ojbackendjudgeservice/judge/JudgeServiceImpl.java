@@ -15,6 +15,7 @@ import com.wlx.ojbackendmodel.model.entity.Question;
 import com.wlx.ojbackendmodel.model.entity.QuestionSubmit;
 import com.wlx.ojbackendmodel.model.enums.QuestionSubmitStatusEnum;
 import com.wlx.ojbackendserviceclient.service.QuestionFeignClient;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,7 @@ import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class JudgeServiceImpl implements JudgeService {
 
@@ -73,26 +75,76 @@ public class JudgeServiceImpl implements JudgeService {
                 .language(language)
                 .inputList(inputList)
                 .build();
-        ExecuteCodeResponse executeCodeResponse = codeSandbox.executeCode(executeCodeRequest);
-        List<String> outputList = executeCodeResponse.getOutputList();
-        // 5）根据沙箱的执行结果，设置题目的判题状态和信息
-        JudgeContext judgeContext = new JudgeContext();
-        judgeContext.setJudgeInfo(executeCodeResponse.getJudgeInfo());
-        judgeContext.setInputList(inputList);
-        judgeContext.setOutputList(outputList);
-        judgeContext.setJudgeCaseList(judgeCaseList);
-        judgeContext.setQuestion(question);
-        judgeContext.setQuestionSubmit(questionSubmit);
-        JudgeInfo judgeInfo = judgeManager.doJudge(judgeContext);
+        JudgeInfo judgeInfo;
+        try {
+            ExecuteCodeResponse executeCodeResponse = codeSandbox.executeCode(executeCodeRequest);
+            List<String> outputList = executeCodeResponse.getOutputList();
+            // 5）根据沙箱的执行结果，设置题目的判题状态和信息
+            Integer sandboxStatus = executeCodeResponse.getStatus();
+            // 沙箱执行出错（status=3），直接根据沙箱返回的错误信息设置状态
+            if (sandboxStatus != null && sandboxStatus == 3) {
+                judgeInfo = executeCodeResponse.getJudgeInfo();
+                if (judgeInfo == null) {
+                    judgeInfo = new JudgeInfo();
+                }
+                // 根据沙箱返回的错误信息确定具体的状态
+                String sandboxMsg = executeCodeResponse.getMessage();
+                if (sandboxMsg != null && (sandboxMsg.contains("编译出错") || sandboxMsg.contains("编译错误") || sandboxMsg.contains("编译"))) {
+                    judgeInfo.setMessage("编译出错");
+                } else if (sandboxMsg != null && sandboxMsg.contains("超出时间限制")) {
+                    judgeInfo.setMessage("超出时间限制");
+                } else if (sandboxMsg != null && sandboxMsg.contains("执行出错")) {
+                    judgeInfo.setMessage("执行出错");
+                } else {
+                    judgeInfo.setMessage("内部出错");
+                }
+            } else {
+                // 沙箱执行成功，走判题策略比较输出
+                JudgeContext judgeContext = new JudgeContext();
+                judgeContext.setJudgeInfo(executeCodeResponse.getJudgeInfo());
+                judgeContext.setInputList(inputList);
+                judgeContext.setOutputList(outputList);
+                judgeContext.setJudgeCaseList(judgeCaseList);
+                judgeContext.setQuestion(question);
+                judgeContext.setQuestionSubmit(questionSubmit);
+                judgeInfo = judgeManager.doJudge(judgeContext);
+            }
+        } catch (Exception e) {
+            // 沙箱调用异常，根据异常信息尝试识别错误类型
+            log.error("判题过程异常: ", e);
+            judgeInfo = new JudgeInfo();
+            String errMsg = e.getMessage();
+            if (errMsg != null && (errMsg.contains("编译") || errMsg.contains("Compile"))) {
+                judgeInfo.setMessage("编译出错");
+            } else if (errMsg != null && errMsg.contains("超时")) {
+                judgeInfo.setMessage("超出时间限制");
+            } else {
+                judgeInfo.setMessage("内部出错");
+            }
+        }
         // 6）修改数据库中的判题结果
         questionSubmitUpdate = new QuestionSubmit();
         questionSubmitUpdate.setId(questionSubmitId);
-        questionSubmitUpdate.setStatus(QuestionSubmitStatusEnum.SUCCEED.getValue());
+        // 根据判题消息映射到对应的提交状态
+        QuestionSubmitStatusEnum statusEnum = QuestionSubmitStatusEnum.getEnumByText(judgeInfo.getMessage());
+        questionSubmitUpdate.setStatus(
+                statusEnum != null ? statusEnum.getValue() : QuestionSubmitStatusEnum.SYSTEM_ERROR.getValue()
+        );
         questionSubmitUpdate.setJudgeInfo(JSONUtil.toJsonStr(judgeInfo));
+        questionSubmitUpdate.setPassCaseCount(judgeInfo.getPassCaseCount());
+        questionSubmitUpdate.setTotalCaseCount(judgeInfo.getTotalCaseCount());
+        questionSubmitUpdate.setPassRate(judgeInfo.getPassRate());
+        questionSubmitUpdate.setScore(judgeInfo.getScore());
         update = questionFeignClient.updateQuestionSubmitById(questionSubmitUpdate);
         if (!update) {
             throw new BusinessException(ResopnseCodeEnum.SYSTEM_ERROR, "题目状态更新错误");
         }
+
+        // 如果判题结果为通过，则增加题目的通过数
+        if (statusEnum != null && QuestionSubmitStatusEnum.ACCEPTED.getValue().equals(statusEnum.getValue())) {
+            questionFeignClient.incrementAcceptedNum(questionId);
+        }
+
         QuestionSubmit questionSubmitResult = questionFeignClient.getQuestionSubmitById(questionId);
         return questionSubmitResult;
     }

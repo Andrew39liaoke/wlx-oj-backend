@@ -26,13 +26,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
+import java.util.ArrayList;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import java.util.stream.Collectors;
 
 @Service
-public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
-    implements QuestionService {
-
-
+public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> implements QuestionService {
     @Resource
     private UserFeignClient userFeignClient;
 
@@ -168,6 +169,53 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
             return question.getAnswer();
         }
         return null;
+    }
+
+    @Override
+    public boolean incrementSubmitNum(Long questionId) {
+        if (questionId == null || questionId <= 0) {
+            return false;
+        }
+        Question question = this.getById(questionId);
+        if (question == null) {
+            return false;
+        }
+        question.setSubmitNum((question.getSubmitNum() == null ? 0 : question.getSubmitNum()) + 1);
+        return this.updateById(question);
+    }
+
+    @Override
+    public List<String> getTags() {
+        List<Question> questions = this.list(new QueryWrapper<Question>().select("tags"));
+        Set<String> allTags = new HashSet<>();
+        Gson gson = new Gson();
+        for (Question question : questions) {
+            String tagsStr = question.getTags();
+            if (StringUtils.isNotBlank(tagsStr)) {
+                try {
+                    List<String> tags = gson.fromJson(tagsStr, new TypeToken<List<String>>(){}.getType());
+                    if (tags != null) {
+                        allTags.addAll(tags);
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to parse tags", e);
+                }
+            }
+        }
+        return new ArrayList<>(allTags);
+    }
+
+    @Override
+    public boolean incrementAcceptedNum(Long questionId) {
+        if (questionId == null || questionId <= 0) {
+            return false;
+        }
+        Question question = this.getById(questionId);
+        if (question == null) {
+            return false;
+        }
+        question.setAcceptedNum((question.getAcceptedNum() == null ? 0 : question.getAcceptedNum()) + 1);
+        return this.updateById(question);
     }
 
 }

@@ -113,4 +113,21 @@ public interface UserService extends IService<User> {
      */
     List<Map<String, Object>> getStudentClassProblems(Long studentId);
 
+    /**
+     * 根据班级ID获取该班级的所有题目ID
+     *
+     * @param classId 班级ID
+     * @return 题目ID列表
+     */
+    List<Long> getClassProblemIds(Long classId);
+
+    /**
+     * 更新用户后同步更新Redis缓存
+     *
+     * @param userId 用户ID
+     * @param token  用户的token
+     * @return 是否同步成功
+     */
+    boolean syncUserCache(Long userId, String token);
+
 }

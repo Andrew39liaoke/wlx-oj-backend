@@ -32,36 +32,45 @@ public class DefaultJudgeStrategy implements JudgeStrategy {
         JudgeInfo judgeInfoResponse = new JudgeInfo();
         judgeInfoResponse.setMemory(memory);
         judgeInfoResponse.setTime(time);
-        // 先判断沙箱执行的结果输出数量是否和预期输出数量相等
-        if (outputList.size() != inputList.size()) {
-            judgeInfoMessageEnum = JudgeInfoMessageEnum.WRONG_ANSWER;
-            judgeInfoResponse.setMessage(judgeInfoMessageEnum.getValue());
-            return judgeInfoResponse;
-        }
-        // 依次判断每一项输出和预期输出是否相等
-        for (int i = 0; i < judgeCaseList.size(); i++) {
-            JudgeCase judgeCase = judgeCaseList.get(i);
-            if (!judgeCase.getOutput().equals(outputList.get(i))) {
-                judgeInfoMessageEnum = JudgeInfoMessageEnum.WRONG_ANSWER;
-                judgeInfoResponse.setMessage(judgeInfoMessageEnum.getValue());
-                return judgeInfoResponse;
+
+        // 计算通过测试用例数、总数、通过率和得分
+        int passCount = 0;
+        int maxCompareCount = Math.min(outputList.size(), judgeCaseList.size());
+        for (int i = 0; i < maxCompareCount; i++) {
+            if (judgeCaseList.get(i).getOutput().equals(outputList.get(i))) {
+                passCount++;
             }
         }
-        // 判断题目限制
+        judgeInfoResponse.setPassCaseCount(passCount);
+        judgeInfoResponse.setTotalCaseCount(judgeCaseList.size());
+        double passRate = judgeCaseList.size() == 0 ? 0 : (double) passCount / judgeCaseList.size();
+        judgeInfoResponse.setPassRate(passRate);
+        judgeInfoResponse.setScore(passRate * 100.0);
+
+        // 获取题目限制
         String judgeConfigStr = question.getJudgeConfig();
         JudgeConfig judgeConfig = JSONUtil.toBean(judgeConfigStr, JudgeConfig.class);
         Long needMemoryLimit = judgeConfig.getMemoryLimit();
         Long needTimeLimit = judgeConfig.getTimeLimit();
-        if (memory > needMemoryLimit) {
-            judgeInfoMessageEnum = JudgeInfoMessageEnum.MEMORY_LIMIT_EXCEEDED;
-            judgeInfoResponse.setMessage(judgeInfoMessageEnum.getValue());
-            return judgeInfoResponse;
-        }
+        // 先判断时间限制（超时会导致输出为空，必须优先检查）
         if (time > needTimeLimit) {
             judgeInfoMessageEnum = JudgeInfoMessageEnum.TIME_LIMIT_EXCEEDED;
             judgeInfoResponse.setMessage(judgeInfoMessageEnum.getValue());
             return judgeInfoResponse;
         }
+        // 判断内存限制
+        if (memory > needMemoryLimit) {
+            judgeInfoMessageEnum = JudgeInfoMessageEnum.MEMORY_LIMIT_EXCEEDED;
+            judgeInfoResponse.setMessage(judgeInfoMessageEnum.getValue());
+            return judgeInfoResponse;
+        }
+        // 判断是否完全正确（输出数量是否和预期相等，且全部通过）
+        if (outputList.size() != inputList.size() || passCount != judgeCaseList.size()) {
+            judgeInfoMessageEnum = JudgeInfoMessageEnum.WRONG_ANSWER;
+            judgeInfoResponse.setMessage(judgeInfoMessageEnum.getValue());
+            return judgeInfoResponse;
+        }
+
         judgeInfoResponse.setMessage(judgeInfoMessageEnum.getValue());
         return judgeInfoResponse;
     }

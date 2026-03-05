@@ -3,7 +3,9 @@ package com.wlx.ojbackendmodel.model.enums;
 public enum RoleEnum {
 
     ADMIN("admin", 1),
-    USER("user", 2);
+    STUDENT("student", 2),
+    TEACHER("teacher", 3),
+    BAN("ban", 4);
 
     private final String key;
     private final int value;

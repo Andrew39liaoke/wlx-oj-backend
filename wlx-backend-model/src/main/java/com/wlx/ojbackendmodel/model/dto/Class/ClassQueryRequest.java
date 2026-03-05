@@ -11,9 +11,19 @@ import java.io.Serializable;
 public class ClassQueryRequest extends PageRequest implements Serializable {
 
     /**
+     * 班级ID
+     */
+    private Long id;
+
+    /**
      * 班级名称（搜索关键词）
      */
     private String className;
+
+    /**
+     * 学生ID
+     */
+    private Long studentId;
 
     private static final long serialVersionUID = 1L;
 }

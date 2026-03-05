@@ -22,4 +22,24 @@ public class JudgeInfo {
      * 消耗时间（KB）
      */
     private Long time;
+
+    /**
+     * 通过测试用例数目
+     */
+    private Integer passCaseCount;
+
+    /**
+     * 总测试用例数目
+     */
+    private Integer totalCaseCount;
+
+    /**
+     * 通过率
+     */
+    private Double passRate;
+
+    /**
+     * 得分
+     */
+    private Double score;
 }

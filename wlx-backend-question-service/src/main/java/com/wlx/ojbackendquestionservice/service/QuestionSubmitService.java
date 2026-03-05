@@ -10,8 +10,10 @@ import com.wlx.ojbackendmodel.model.entity.QuestionSubmit;
 import com.wlx.ojbackendmodel.model.entity.User;
 import com.wlx.ojbackendmodel.model.vo.QuestionSubmitVO;
 
+import java.util.List;
+
 public interface QuestionSubmitService extends IService<QuestionSubmit> {
-    
+
     /**
      * 题目提交
      *
@@ -46,4 +48,12 @@ public interface QuestionSubmitService extends IService<QuestionSubmit> {
      * @return
      */
     Page<QuestionSubmitVO> getQuestionSubmitVOPage(Page<QuestionSubmit> questionSubmitPage, User loginUser);
+    /**
+     * 获取指定年月的签到日历（打卡日期列表）
+     * @param year 年份
+     * @param month 月份
+     * @param userId 用户 ID
+     * @return 该月打卡的具体日期列表（如 1, 2, 15, 27）
+     */
+    List<Integer> getSubmitCalendar(int year, int month, Long userId);
 }

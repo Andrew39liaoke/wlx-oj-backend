@@ -4,9 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import cn.hutool.json.JSONUtil;
 import com.wlx.ojbackendmodel.model.dto.question.QuestionAddRequest;
 import com.wlx.ojbackendmodel.model.entity.Question;
+import com.wlx.ojbackendmodel.model.entity.QuestionFavour;
 import com.wlx.ojbackendmodel.model.entity.QuestionSubmit;
+import com.wlx.ojbackendmodel.model.entity.QuestionThumb;
+import com.wlx.ojbackendquestionservice.service.QuestionFavourService;
 import com.wlx.ojbackendquestionservice.service.QuestionService;
 import com.wlx.ojbackendquestionservice.service.QuestionSubmitService;
+import com.wlx.ojbackendquestionservice.service.QuestionThumbService;
 import com.wlx.ojbackendserviceclient.service.QuestionFeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +27,12 @@ public class QuestionInnerController implements QuestionFeignClient {
 
     @Resource
     private QuestionSubmitService questionSubmitService;
+
+    @Resource
+    private QuestionThumbService questionThumbService;
+
+    @Resource
+    private QuestionFavourService questionFavourService;
 
     @GetMapping("/get/id")
     @Override
@@ -42,29 +52,16 @@ public class QuestionInnerController implements QuestionFeignClient {
         return questionSubmitService.updateById(questionSubmit);
     }
 
-    /**
-     * 根据题目ID获取解答过程
-     *
-     * @param questionId 题目ID
-     * @return 解答过程，如果不存在则返回 null
-     */
     @GetMapping("/get/answer")
     @Override
     public String getQuestionAnswer(@RequestParam("questionId") Long questionId) {
         return questionService.getAnswerByQuestionId(questionId);
     }
 
-    /**
-     * 根据用户ID和题目ID列表批量查询提交记录
-     *
-     * @param userId 用户ID
-     * @param questionIds 题目ID列表
-     * @return 提交记录列表
-     */
     @GetMapping("/question_submit/list/byUserAndQuestions")
     @Override
     public List<QuestionSubmit> listQuestionSubmitsByUserAndQuestions(@RequestParam("userId") Long userId,
-                                                                       @RequestParam("questionIds") Collection<Long> questionIds) {
+                                                                      @RequestParam("questionIds") Collection<Long> questionIds) {
         return questionSubmitService.list(
                 new LambdaQueryWrapper<QuestionSubmit>()
                         .eq(QuestionSubmit::getUserId, userId)
@@ -72,24 +69,26 @@ public class QuestionInnerController implements QuestionFeignClient {
         );
     }
 
-    /**
-     * 根据题目ID列表批量查询题目信息
-     *
-     * @param questionIds 题目ID列表
-     * @return 题目列表
-     */
+    @GetMapping("/question_submit/list/byUsersAndQuestion")
+    @Override
+    public List<QuestionSubmit> listQuestionSubmitsByUserIdsAndQuestionId(@RequestParam("userIds") Collection<Long> userIds,
+                                                                          @RequestParam("questionId") Long questionId) {
+        if (userIds == null || userIds.isEmpty() || questionId == null) {
+            return List.of();
+        }
+        return questionSubmitService.list(
+                new LambdaQueryWrapper<QuestionSubmit>()
+                        .in(QuestionSubmit::getUserId, userIds)
+                        .eq(QuestionSubmit::getQuestionId, questionId)
+        );
+    }
+
     @GetMapping("/list/byIds")
     @Override
     public List<Question> listQuestionsByIds(@RequestParam("questionIds") Collection<Long> questionIds) {
         return questionService.listByIds(questionIds);
     }
 
-    /**
-     * 创建题目
-     *
-     * @param questionAddRequest 题目创建请求
-     * @return 创建的题目ID
-     */
     @PostMapping("/add")
     @Override
     public Long addQuestion(@RequestBody QuestionAddRequest questionAddRequest) {
@@ -97,15 +96,12 @@ public class QuestionInnerController implements QuestionFeignClient {
         question.setTitle(questionAddRequest.getTitle());
         question.setContent(questionAddRequest.getContent());
         question.setAnswer(questionAddRequest.getAnswer());
-        // 设置标签
         if (questionAddRequest.getTags() != null) {
             question.setTags(JSONUtil.toJsonStr(questionAddRequest.getTags()));
         }
-        // 设置判题用例
         if (questionAddRequest.getJudgeCase() != null) {
             question.setJudgeCase(JSONUtil.toJsonStr(questionAddRequest.getJudgeCase()));
         }
-        // 设置判题配置
         if (questionAddRequest.getJudgeConfig() != null) {
             question.setJudgeConfig(JSONUtil.toJsonStr(questionAddRequest.getJudgeConfig()));
         }
@@ -113,9 +109,56 @@ public class QuestionInnerController implements QuestionFeignClient {
         question.setAcceptedNum(0);
         question.setThumbNum(0);
         question.setFavourNum(0);
-        question.setUserId(1L); // 默认用户ID，实际应该从请求中获取
+        question.setUserId(1L);
         questionService.save(question);
         return question.getId();
     }
 
+    @PostMapping("/increment_submit")
+    @Override
+    public boolean incrementSubmitNum(@RequestParam("questionId") Long questionId) {
+        return questionService.incrementSubmitNum(questionId);
+    }
+
+    @PostMapping("/increment_accepted")
+    @Override
+    public boolean incrementAcceptedNum(@RequestParam("questionId") Long questionId) {
+        return questionService.incrementAcceptedNum(questionId);
+    }
+
+    /**
+     * 获取所有题目提交记录
+     */
+    @GetMapping("/question_submit/listAll")
+    @Override
+    public List<QuestionSubmit> listAllQuestionSubmits() {
+        return questionSubmitService.list();
+    }
+
+    /**
+     * 获取所有题目点赞记录
+     */
+    @GetMapping("/question_thumb/listAll")
+    @Override
+    public List<QuestionThumb> listAllQuestionThumbs() {
+        return questionThumbService.list();
+    }
+
+    /**
+     * 获取所有题目收藏记录
+     */
+    @GetMapping("/question_favour/listAll")
+    @Override
+    public List<QuestionFavour> listAllQuestionFavours() {
+        return questionFavourService.list();
+    }
+
+    /**
+     * 获取所有未删除题目列表
+     */
+    @GetMapping("/list/all")
+    @Override
+    public List<Question> listAllQuestions() {
+        return questionService.list();
+    }
 }

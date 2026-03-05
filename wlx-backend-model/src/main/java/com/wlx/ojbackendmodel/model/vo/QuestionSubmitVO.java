@@ -41,6 +41,26 @@ public class QuestionSubmitVO implements Serializable {
     private Integer status;
 
     /**
+     * 通过测试用例数目
+     */
+    private Integer passCaseCount;
+
+    /**
+     * 总测试用例数目
+     */
+    private Integer totalCaseCount;
+
+    /**
+     * 通过率
+     */
+    private Double passRate;
+
+    /**
+     * 得分
+     */
+    private Double score;
+
+    /**
      * 题目 id
      */
     private Long questionId;

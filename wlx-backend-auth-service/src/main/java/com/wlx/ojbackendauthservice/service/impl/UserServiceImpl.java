@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.wlx.ojbackendcommon.constant.RedisConstant.TOKEN_PREFIX;
@@ -140,10 +141,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @return 如果包含admin返回"admin"，否则返回"user"
      */
     public String getUserTypeByRoles(List<String> roles) {
-        if (CollectionUtils.isNotEmpty(roles) && roles.contains("admin")) {
-            return "admin";
+        if (CollectionUtils.isNotEmpty(roles)) {
+            if (roles.contains("admin")) {
+                return "admin";
+            }
+            if (roles.contains("teacher")) {
+                return "teacher";
+            }
         }
-        return "user";
+        return "student";
     }
 
     /**
@@ -172,7 +178,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             super.save(user);
             // 保存用户-角色关联，默认角色为 RoleEnum.USER
             try {
-                Integer roleId = RoleEnum.USER.getValue();
+                Integer roleId = RoleEnum.STUDENT.getValue();
                 UserRole userRole = new UserRole();
                 if (user.getId() != null) {
                     userRole.setUserId(user.getId());
@@ -232,7 +238,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         UserRole userRole = new UserRole();
         userRole.setUserId(user.getId());
-        userRole.setRoleId((long) RoleEnum.USER.getValue());
+        userRole.setRoleId((long) RoleEnum.STUDENT.getValue());
         userRoleService.save(userRole);
         return user.getId();
     }
@@ -260,6 +266,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null) {
             throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR, "用户不存在或密码错误");
         }
+
+        // 查询用户角色，判断是否被封禁
+        List<String> roleNames = getRoleNamesByUsername(userName);
+        if (roleNames != null && roleNames.contains("ban")) {
+            throw new BusinessException(ResopnseCodeEnum.NO_AUTH_ERROR, "您的账号已被封禁");
+        }
+
         return this.getLoginUserVO(user);
     }
 
@@ -289,14 +302,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
         }
 
-        // 从 token 中解析用户类型并设置到 user 对象中
+        // 动态查询用户角色，避免Token保存过期角色导致信息不同步
         if (user != null) {
             try {
-                String userType = JwtUtil.getUserTypeFromToken(token);
+                List<String> roleNames = getRoleNamesByUsername(user.getUserName());
+                String userType = getUserTypeByRoles(roleNames);
                 user.setRole(userType);
             } catch (Exception e) {
-                log.warn("从token解析用户类型失败: {}", e.getMessage());
-                user.setRole(null);
+                log.warn("实时查询用户类型失败,回退到Token提取: {}", e.getMessage());
+                try {
+                    String userType = JwtUtil.getUserTypeFromToken(token);
+                    user.setRole(userType);
+                } catch (Exception ex) {
+                    user.setRole(null);
+                }
             }
         }
 
@@ -336,8 +355,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         // 构建Redis key
         String redisKey = TOKEN_PREFIX + token;
+        System.out.println("redisKey = " + redisKey);
         // 删除Redis中的token
         Boolean deleteResult = stringRedisTemplate.delete(redisKey);
+        System.out.println("deleteResult = " + deleteResult);
         if (deleteResult != null && deleteResult) {
             log.info("用户token已从Redis中删除: {}", redisKey);
         }
@@ -362,6 +383,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         UserVO userVO = new UserVO();
         BeanUtils.copyProperties(user, userVO);
+        // 主动查询用户角色（role 字段不在数据库中，需从 user_role 关联表获取）
+        try {
+            List<String> roleNames = getRoleNamesByUsername(user.getUserName());
+            String userType = getUserTypeByRoles(roleNames);
+            userVO.setUserRole(userType);
+        } catch (Exception e) {
+            log.warn("查询用户角色失败: userId={}, {}", user.getId(), e.getMessage());
+            userVO.setUserRole("student");
+        }
         return userVO;
     }
 
@@ -492,5 +522,71 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         log.info("根据学生ID查询班级题目: studentId={}, 结果数量={}", studentId, result.size());
         return result;
+    }
+
+    /**
+     * 根据班级ID获取该班级的所有题目ID
+     *
+     * @param classId 班级ID
+     * @return 题目ID列表
+     */
+    @Override
+    public List<Long> getClassProblemIds(Long classId) {
+        if (classId == null) {
+            return new ArrayList<>();
+        }
+        List<ClassProblem> classProblems = classProblemMapper.selectList(
+                Wrappers.<ClassProblem>lambdaQuery().eq(ClassProblem::getClassId, classId)
+        );
+        if (CollectionUtils.isEmpty(classProblems)) {
+            return new ArrayList<>();
+        }
+        return classProblems.stream()
+                .map(ClassProblem::getProblemId)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 更新用户后同步更新Redis缓存
+     *
+     * @param userId 用户ID
+     * @param token  用户的token
+     * @return 是否同步成功
+     */
+    @Override
+    public boolean syncUserCache(Long userId, String token) {
+        if (userId == null || StringUtils.isBlank(token)) {
+            return false;
+        }
+        // 构建Redis key
+        String redisKey = TOKEN_PREFIX + token;
+        // 检查Redis中是否存在该key
+        Boolean exists = stringRedisTemplate.hasKey(redisKey);
+        if (exists == null || !exists) {
+            // Redis中没有缓存，无需同步
+            return true;
+        }
+        try {
+            // 从数据库获取最新的用户信息
+            User latestUser = this.getById(userId);
+            if (latestUser == null) {
+                log.warn("同步用户缓存失败：用户不存在, userId={}", userId);
+                return false;
+            }
+            // 将最新用户信息写入Redis
+            String userJson = GSON.toJson(latestUser);
+            // 获取token剩余过期时间
+            Long ttl = stringRedisTemplate.getExpire(redisKey);
+            if (ttl != null && ttl > 0) {
+                stringRedisTemplate.opsForValue().set(redisKey, userJson, ttl, TimeUnit.SECONDS);
+            } else {
+                stringRedisTemplate.opsForValue().set(redisKey, userJson);
+            }
+            log.info("用户缓存已同步更新: userId={}, redisKey={}", userId, redisKey);
+            return true;
+        } catch (Exception e) {
+            log.error("同步用户缓存失败: {}", e.getMessage());
+            return false;
+        }
     }
 }

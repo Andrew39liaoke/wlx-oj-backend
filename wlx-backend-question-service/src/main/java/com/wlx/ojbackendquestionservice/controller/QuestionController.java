@@ -23,7 +23,7 @@ import com.wlx.ojbackendquestionservice.service.QuestionService;
 import com.wlx.ojbackendquestionservice.service.QuestionSubmitService;
 import com.wlx.ojbackendserviceclient.service.UserFeignClient;
 import lombok.extern.slf4j.Slf4j;
- 
+
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -331,6 +331,30 @@ public class QuestionController {
         final User loginUser = userFeignClient.getLoginUser(request.getHeader(JwtUtil.HEADER));
         // 返回脱敏信息
         return Result.success(questionSubmitService.getQuestionSubmitVOPage(questionSubmitPage, loginUser));
+    }
+
+    @GetMapping("/tags")
+    public ResponseEntity<List<String>> getAllQuestionTags() {
+        List<String> tags = questionService.getTags();
+        return Result.success(tags);
+    }
+
+    /**
+     * 获取指定年月的签到日历
+     * @param year 年份
+     * @param month 月份
+     * @param request HTTP 请求
+     * @return 签到的日期列表
+     */
+    @GetMapping("/question_submit/calendar")
+    public ResponseEntity<List<Integer>> getSubmitCalendar(
+            @RequestParam("year") int year,
+            @RequestParam("month") int month,
+            HttpServletRequest request) {
+
+        User loginUser = userFeignClient.getLoginUser(request.getHeader(JwtUtil.HEADER));
+        List<Integer> calendar = questionSubmitService.getSubmitCalendar(year, month, loginUser.getId());
+        return Result.success(calendar);
     }
 
     /**

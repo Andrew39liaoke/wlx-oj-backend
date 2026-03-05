@@ -2,9 +2,7 @@ package com.wlx.ojbackendauthservice.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.wlx.ojbackendmodel.model.dto.Class.ClassQuestionQueryRequest;
-import com.wlx.ojbackendmodel.model.dto.Class.ClassQueryRequest;
-import com.wlx.ojbackendmodel.model.dto.Class.ClassStudentQueryRequest;
+import com.wlx.ojbackendmodel.model.dto.Class.*;
 import com.wlx.ojbackendmodel.model.dto.question.QuestionAddRequest;
 import com.wlx.ojbackendmodel.model.entity.Class;
 import com.wlx.ojbackendmodel.model.entity.User;
@@ -43,6 +41,14 @@ public interface ClassService extends IService<Class> {
     boolean quitClass(List<Long> classIds, Long studentId);
 
     /**
+     * 移除班级学生（教师或管理员操作）
+     *
+     * @param removeRequest 移除请求DTO
+     * @return 是否移除成功
+     */
+    boolean removeClassStudent(ClassStudentRemoveRequest removeRequest);
+
+    /**
      * 分页获取班级题目列表
      *
      * @param classQuestionQueryRequest 查询请求
@@ -60,12 +66,46 @@ public interface ClassService extends IService<Class> {
     List<Map<String, Object>> getClassQuestionSubmitInfo(Long classId, Long studentId);
 
     /**
+     * 获取指定班级所有人对某个题目的提交统计数据（通过率、提交数）
+     *
+     * @param classId 班级ID
+     * @param questionId 题目ID
+     * @return 包含提交数和通过数的 Map
+     */
+    Map<String, Object> getClassQuestionSubmitStats(Long classId, Long questionId);
+
+    /**
+     * 获取指定班级所有人对某个题目的详细提交状态（包含谁完成了、未完成、提交次数）
+     *
+     * @param classId 班级ID
+     * @param questionId 题目ID
+     * @return 包含学生名称、完成状态、提交次数的详情列表
+     */
+    List<Map<String, Object>> getClassQuestionSubmitDetail(Long classId, Long questionId);
+
+
+    /**
      * 分页获取班级列表
      *
      * @param classQueryRequest 查询请求
      * @return 分页班级VO
      */
     Page<ClassVO> getClassPage(ClassQueryRequest classQueryRequest);
+
+    /**
+     * 分页获取某个学生所在的所有班级列表
+     *
+     * @param classQueryRequest 查询请求（包含学生ID和班级名称）
+     * @return 分页班级VO
+     */
+    Page<ClassVO> getStudentClasses(ClassQueryRequest classQueryRequest);
+
+    /**
+     * 分页获取某个教师创建的班级列表
+     * @param classTeacherQueryRequest 查询请求（包含教师ID和名称）
+     * @return 分页班级VO
+     */
+    Page<ClassVO> getTeacherClasses(ClassTeacherQueryRequest classTeacherQueryRequest);
 
     /**
      * 分页获取班级的学生列表
@@ -92,4 +132,20 @@ public interface ClassService extends IService<Class> {
      * @return 是否删除成功
      */
     boolean deleteClassProblems(Long classId, List<Long> problemIds);
+    /**
+     * 批量删除班级
+     *
+     * @param classIds 班级ID列表
+     * @param teacherId 教师ID
+     * @return 是否删除成功
+     */
+    boolean deleteClasses(List<Long> classIds, Long teacherId);
+
+    /**
+     * 获取班级统计图表数据（语言分布、学生排行、状态分布、每日提交趋势）
+     *
+     * @param classId 班级ID
+     * @return 聚合统计数据
+     */
+    Map<String, Object> getClassStatsCharts(Long classId);
 }

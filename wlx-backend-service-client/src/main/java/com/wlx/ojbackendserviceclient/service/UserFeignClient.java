@@ -74,6 +74,14 @@ public interface  UserFeignClient {
     @GetMapping("/getStudentClassProblems")
     List<Map<String, Object>> getStudentClassProblems(@RequestParam("studentId") Long studentId);
 
+    /**
+     * 根据班级ID获取该班级的所有题目ID
+     * @param classId 班级ID
+     * @return 题目ID列表
+     */
+    @GetMapping("/getClassProblemIds")
+    List<Long> getClassProblemIds(@RequestParam("classId") Long classId);
+
 
     /**
      * 更新班级的文件信息ID

@@ -9,6 +9,8 @@ import com.wlx.ojbackendmodel.model.vo.QuestionVO;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.List;
+
 public interface QuestionService extends IService<Question> {
 
 
@@ -27,7 +29,7 @@ public interface QuestionService extends IService<Question> {
      * @return
      */
     QueryWrapper<Question> getQueryWrapper(QuestionQueryRequest questionQueryRequest);
-    
+
     /**
      * 获取题目封装
      *
@@ -43,7 +45,7 @@ public interface QuestionService extends IService<Question> {
      * @return
      */
     Page<QuestionVO> getQuestionVOPage(Page<Question> questionPage);
-    
+
     /**
      * 获取题目的解答过程
      *
@@ -52,4 +54,23 @@ public interface QuestionService extends IService<Question> {
      */
     String getAnswerByQuestionId(Long questionId);
 
+    /**
+     * 增加题目提交数
+     * @param questionId
+     * @return
+     */
+    boolean incrementSubmitNum(Long questionId);
+
+    /**
+     * 增加题目通过数
+     * @param questionId
+     * @return
+     */
+    boolean incrementAcceptedNum(Long questionId);
+
+    /**
+     * 获取所有标签
+     * @return
+     */
+    List<String> getTags();
 }

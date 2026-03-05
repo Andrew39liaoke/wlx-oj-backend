@@ -4,6 +4,7 @@ import com.wlx.ojbackendjudgeservice.judge.strategy.DefaultJudgeStrategy;
 import com.wlx.ojbackendjudgeservice.judge.strategy.JavaLanguageJudgeStrategy;
 import com.wlx.ojbackendjudgeservice.judge.strategy.JudgeContext;
 import com.wlx.ojbackendjudgeservice.judge.strategy.JudgeStrategy;
+import com.wlx.ojbackendjudgeservice.judge.strategy.PythonLanguageJudgeStrategy;
 import com.wlx.ojbackendmodel.model.codesandbox.JudgeInfo;
 import com.wlx.ojbackendmodel.model.entity.QuestionSubmit;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,8 @@ public class JudgeManager {
         JudgeStrategy judgeStrategy = new DefaultJudgeStrategy();
         if ("java".equals(language)) {
             judgeStrategy = new JavaLanguageJudgeStrategy();
+        } else if ("python".equals(language)) {
+            judgeStrategy = new PythonLanguageJudgeStrategy();
         }
         return judgeStrategy.doJudge(judgeContext);
     }

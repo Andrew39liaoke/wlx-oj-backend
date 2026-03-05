@@ -102,6 +102,17 @@ public class UserInnerController implements UserFeignClient {
     }
 
     /**
+     * 根据班级ID获取该班级的所有题目ID
+     * @param classId 班级ID
+     * @return 题目ID列表
+     */
+    @Override
+    @GetMapping("/getClassProblemIds")
+    public List<Long> getClassProblemIds(@RequestParam("classId") Long classId) {
+        return userService.getClassProblemIds(classId);
+    }
+
+    /**
      * 更新班级的文件信息ID
      *
      * @param classId 班级ID
