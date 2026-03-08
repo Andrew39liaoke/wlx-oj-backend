@@ -15,11 +15,20 @@ public class ClassChatWebSocketConfig implements WebSocketConfigurer {
     private ClassChatWebSocketHandler classChatWebSocketHandler;
 
     @Resource
+    private LiveWebSocketHandler liveWebSocketHandler;
+
+    @Resource
     private ClassChatHandshakeInterceptor classChatHandshakeInterceptor;
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        // 班级群聊 WebSocket
         registry.addHandler(classChatWebSocketHandler, "/api/ai/chat/ws")
+                .addInterceptors(classChatHandshakeInterceptor)
+                .setAllowedOrigins("*");
+
+        // 直播间 WebSocket
+        registry.addHandler(liveWebSocketHandler, "/api/ai/live/ws")
                 .addInterceptors(classChatHandshakeInterceptor)
                 .setAllowedOrigins("*");
     }

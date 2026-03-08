@@ -95,6 +95,7 @@ public class AccountRealm extends AuthorizingRealm {
             }
         }
         Boolean role_permission = stringRedisTemplate.hasKey(Role_Permission);
+
         if (role_permission == null || !role_permission){
             // 缓存用户角色对应的权限（按角色 key 存放），如果 key 已存在则不修改
             cachePermissionsPerRole(username, seconds);
@@ -140,6 +141,7 @@ public class AccountRealm extends AuthorizingRealm {
             if (!ADMIN_ROLE.equalsIgnoreCase(userType)) {
                 return;
             }
+            System.out.println("userType = " + userType);
             stringRedisTemplate.opsForValue().set(Role_Permission,"1");
             String rolePermissionKey = PERMISSION_PREFIX + userType;
             Boolean rolePermExists = stringRedisTemplate.hasKey(rolePermissionKey);

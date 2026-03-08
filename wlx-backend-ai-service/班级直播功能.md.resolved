@@ -1,0 +1,164 @@
+# 班级直播功能实现方案
+
+## 概述
+
+为在线教学系统添加班级直播功能，支持老师开启直播（摄像头 + 麦克风 + 屏幕共享），学生加入直播间观看实时画面并进行文字聊天互动。该方案基于 SRS v5 流媒体服务器，通过前后端配合实现毫秒级延迟的直播体验。
+
+## 系统架构
+
+```mermaid
+graph TB
+    subgraph 前端 Vue3
+        T[老师端<br>WHIP 推流请求] -->|SDP Offer| API
+        S[学生端<br>WHEP 拉流请求] -->|SDP Offer| API
+        T -->|WebSocket| WS
+        S -->|WebSocket| WS
+    end
+    
+    subgraph 后端 ai-service
+        API[LiveRoomController<br>SDP 代理与管理] -->|SDP Exchange| SRS
+        WS[LiveWebSocket<br>实时互动+状态]
+        DB[(MySQL<br>live_room 表)]
+        RD[(Redis<br>Pub/Sub & Status)]
+    end
+
+    subgraph 流媒体服务器
+        SRS[SRS v5<br>WebRTC 核心]
+    end
+    
+    WS --> DB
+    WS --> RD
+    API --> DB
+    SRS -->|on_publish 回调| API
+```
+
+### 核心设计决策：SDP 代理模式
+为了解决内网或 Docker 部署环境下，SRS 返回的 SDP Answer 中包含 `127.0.0.1` 导致浏览器 ICE 握手失败的问题，后端集成了 `WebRTCUtil` 对交换过程进行代理，并自动执行 **Candidate IP 替换**。
+
+---
+
+## 用户审阅事项
+
+> [!IMPORTANT]
+> **SRS 流媒体服务器部署**  
+> 必须使用 Docker 部署 SRS v5，并暴露相关端口：
+> ```bash
+> docker run -d --name srs -p 1935:1935 -p 1985:1985 -p 8080:8080 \
+>   -p 8000:8000/udp registry.cn-hangzhou.aliyuncs.com/ossrs/srs:v5
+> ```
+
+> [!TIP]
+> **画质优化**  
+> 系统默认尝试 1080p 采集。前端在推流时会手动注入 `b=AS:2500` Bandwidth 描述符，将 WebRTC 码率强行拉升至 2.5Mbps，以保证屏幕共享时的文字清晰度。
+
+---
+
+## Proposed Changes
+
+### 数据库设计
+
+新建 `live_room` 表：
+
+```sql
+CREATE TABLE `live_room` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `classId` bigint NOT NULL COMMENT '班级ID',
+  `teacherId` bigint NOT NULL COMMENT '教师ID',
+  `title` varchar(200) DEFAULT '班级直播',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '0-未开始 1-直播中 2-已结束',
+  `streamId` varchar(100) DEFAULT NULL COMMENT '流识别符(通常为classId)',
+  `startTime` datetime DEFAULT NULL,
+  `endTime` datetime DEFAULT NULL,
+  `viewerCount` int NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_classId` (`classId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='直播间表';
+```
+
+---
+
+### 后端 API 接口 (ai-service)
+
+接口路径已按角色语义重构为：`/api/ai/{role}/live/...`
+
+#### 1. 通用接口 (User)
+- `GET /api/ai/user/live/active?classId=xxx`: 查询班级当前活跃直播。
+- `GET /api/ai/user/live/info?roomId=xxx`: 查询直播详情。
+- `POST /api/ai/user/live/callback`: **SRS 回调接口**，处理 `on_publish` / `on_unpublish` 事件，同步直播状态到 Redis 及 WebSocket。
+
+#### 2. 教师接口 (Teacher)
+- `POST /api/ai/teacher/live/create`: 创建直播间。
+- `POST /api/ai/teacher/live/start`: 更新状态为“直播中”。
+- `POST /api/ai/teacher/live/end`: 结束直播并触发 SRS 强行断开客户端。
+- `POST /api/ai/teacher/live/whip/{classId}`: **推流代理**。接收前端 SDP Offer，透传给 SRS，并处理 Candidate IP 替换。
+
+#### 3. 学生接口 (Student)
+- `POST /api/ai/student/live/whep/{streamId}`: **拉流代理**。内置状态核查，确保推流已开启后才允许建立连接。
+
+---
+
+### WebSocket 实时协议
+
+端点：`ws://{host}:8088/api/ai/live/ws?token=...&classId=...`
+
+| 消息类型 (`type`) | 方向 | 说明 |
+| :--- | :--- | :--- |
+| `ping / pong` | 双向 | 心跳维持，90秒无活动自动清理。 |
+| `chat` | 双向 | 实时聊天。**消息不持久化**，关播即失效。 |
+| `live_status` | 下发 | 广播直播状态变更 (`started` / `ended`)。 |
+| `viewer_join / leave` | 下发 | 系统通知，包含用户名及实时人数。 |
+| `viewer_count` | 下发 | 纯数字广播，用于 UI 顶部状态栏更新。 |
+
+---
+
+### 前端推流核心逻辑 (ClassLivePanel.vue)
+
+```typescript
+// 1. 推流 (WHIP Proxy)
+const startLive = async () => {
+  const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  
+  const offer = await pc.createOffer();
+  // 画质优化：注入 2.5Mbps 带宽控制
+  offer.sdp = offer.sdp.replace(/m=video.*/, "$&\r\nb=AS:2500"); 
+  await pc.setLocalDescription(offer);
+
+  // 通过后端代理推流，解决跨网连通性
+  const { data: sdpAnswer } = await axios.post(`/api/ai/teacher/live/whip/${classId}`, offer.sdp);
+  await pc.setRemoteDescription({ type: 'answer', sdp: sdpAnswer });
+};
+
+// 2. 拉流 (WHEP Proxy)
+const startPlay = async (streamId) => {
+  const pc = new RTCPeerConnection();
+  pc.addTransceiver('video', { direction: 'recvonly' });
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+
+  const { data: sdpAnswer } = await axios.post(`/api/ai/student/live/whep/${streamId}`, offer.sdp);
+  await pc.setRemoteDescription({ type: 'answer', sdp: sdpAnswer });
+};
+```
+
+---
+
+### 配置项参考
+
+#### 后端 application.yml
+```yaml
+live:
+  srs:
+    base-url: http://127.0.0.1:1985/rtc/v1/
+    api-host: 192.168.1.100  # 部署服务器的真实 IP，用于 Candidate 替换
+    app-name: live
+```
+
+---
+
+## Verification Plan
+
+1. **推拉流验证**: 老师开启直播，学生能够通过 WHEP Proxy 成功观看，且 ICE 状态为 `connected`。
+2. **画质验证**: 检查 WebRTC 统计信息，确认高度为 1080p 且瞬时码率接近 2.5Mbps。
+3. **连通性验证**: 在非本机环境（如局域网另一台电脑）访问，验证 Candidate IP 替换是否生效。
+4. **消息验证**: 测试发送聊天消息，确认所有观众实时收到，且断开重连后不会加载历史消息。

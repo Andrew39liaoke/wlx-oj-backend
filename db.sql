@@ -218,3 +218,22 @@ CREATE TABLE `student_class`
     INDEX `idx_class_id` (`class_id`),
     UNIQUE INDEX `uk_student_class` (`student_id`, `class_id`)
 ) COMMENT='学生班级关联表';
+
+
+create table live_room
+(
+    id           bigint auto_increment primary key,
+    class_id     bigint                                 not null comment '班级ID',
+    teacher_id   bigint                                 not null comment '教师(主播)ID',
+    title        varchar(200) default '班级直播'        null comment '直播标题',
+    status       tinyint      default 0                 not null comment '0-未开始 1-直播中 2-已结束',
+    stream_id    varchar(100)                           null comment 'SRS 流ID',
+    start_time   datetime                               null comment '开始时间',
+    end_time     datetime                               null comment '结束时间',
+    viewer_count int          default 0                 not null comment '观看人数',
+    create_time  datetime     default CURRENT_TIMESTAMP not null,
+    update_time  datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP,
+    is_delete    tinyint      default 0                 not null,
+    index idx_classId (class_id),
+    index idx_status (status)
+) comment '直播间表';

@@ -88,6 +88,13 @@
             <artifactId>spring-ai-tika-document-reader</artifactId>
         </dependency>
 
+        <!-- OkHttp: 用于转发 WHIP/WHEP SDP 请求 -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
+        </dependency>
+
         <!-- 本地模块依赖 -->
         <dependency>
             <groupId>com.wlx</groupId>
