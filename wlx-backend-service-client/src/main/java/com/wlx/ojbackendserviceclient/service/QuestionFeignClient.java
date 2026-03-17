@@ -6,6 +6,7 @@ import com.wlx.ojbackendmodel.model.entity.Question;
 import com.wlx.ojbackendmodel.model.entity.QuestionFavour;
 import com.wlx.ojbackendmodel.model.entity.QuestionSubmit;
 import com.wlx.ojbackendmodel.model.entity.QuestionThumb;
+import com.wlx.ojbackendmodel.model.vo.KnowledgePointVO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -126,5 +127,14 @@ public interface QuestionFeignClient {
      */
     @GetMapping("/list/all")
     List<Question> listAllQuestions();
+
+    /**
+     * 获取知识点列表
+     *
+     * @param classId 班级ID（传null表示查询所有）
+     * @return 知识点列表（树形结构）
+     */
+    @GetMapping("/knowledge/list")
+    List<KnowledgePointVO> listKnowledgePoints(@RequestParam(value = "classId", required = false) Long classId);
 
 }

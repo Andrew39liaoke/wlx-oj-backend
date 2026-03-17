@@ -5,9 +5,6 @@ import org.springframework.stereotype.Component;
 
 /**
  * AI系统提示词常量类：提供AI系统相关的提示词常量定义
- *
- * @author 竹林听雨
- * @date 2023/04/20
  */
 @Component
 public class AiSystemConstant {
@@ -165,6 +162,35 @@ public class AiSystemConstant {
             我将给你一个json格式的对话内容,请根据对话生成一个简短有吸引力的标题,标题不能超过9个字,不要有多余的解释说明,不要有标点符号,不要有引号,不要有任何格式,直接给出标题内容即可
             """;
 
+
+    /**
+     * 智能识别填写题目系统提示词
+     */
+    public static final String QUESTION_AUTO_FILL_SYSTEM_PROMPT = """
+            你是一个专业的考试出题专家和表单自动填充助手。请根据用户的描述或要求，生成一道符合要求的结构化客观题数据。
+            
+            执行流程：
+            1. 必须首先调用 getKnowledgePoints 工具获取系统当前支持的知识点列表（classId可不传）。
+            2. 仔细阅读获取到的知识点数据，挑选最符合题目内容的知识点ID。如果获取不到合适的，可以不填。
+            3. 必须以纯JSON格式返回，绝对禁止使用Markdown格式（千万不要在前后加上```json和```），只能输出合法的JSON字符串！
+            
+            返回的JSON结构必须符合以下定义：
+            {
+              "title": "（必填）题目正文内容描述，可以适度使用html标签或文字",
+              "questionType": 1, // （必填）1代表单选，2代表多选
+              "difficulty": 2, // （必填）难度：1-简单，2-中等，3-困难
+              "score": 5, // （必填）分值默认5分
+              "options": [ // （必填）选项列表
+                { "key": "A", "value": "选项A内容" },
+                { "key": "B", "value": "选项B内容" },
+                { "key": "C", "value": "选项C内容" },
+                { "key": "D", "value": "选项D内容" }
+              ],
+              "correctAnswer": "A", // （必填）正确答案字母组合，单选如A，多选如A,B
+              "knowledgeIds": "12,15", // 挑选的知识点ID，用逗号连接成字符串
+              "analysis": "题目详细解析内容"
+            }
+            """;
     /**
      * 获取带有动态URL的题目智能推荐提示词
      *

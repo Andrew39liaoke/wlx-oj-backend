@@ -11,7 +11,9 @@ import com.wlx.ojbackendquestionservice.service.QuestionFavourService;
 import com.wlx.ojbackendquestionservice.service.QuestionService;
 import com.wlx.ojbackendquestionservice.service.QuestionSubmitService;
 import com.wlx.ojbackendquestionservice.service.QuestionThumbService;
+import com.wlx.ojbackendquestionservice.service.ExamService;
 import com.wlx.ojbackendserviceclient.service.QuestionFeignClient;
+import com.wlx.ojbackendmodel.model.vo.KnowledgePointVO;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.annotation.Resource;
@@ -33,6 +35,9 @@ public class QuestionInnerController implements QuestionFeignClient {
 
     @Resource
     private QuestionFavourService questionFavourService;
+
+    @Resource
+    private ExamService examService;
 
     @GetMapping("/get/id")
     @Override
@@ -160,5 +165,14 @@ public class QuestionInnerController implements QuestionFeignClient {
     @Override
     public List<Question> listAllQuestions() {
         return questionService.list();
+    }
+
+    /**
+     * 获取知识点列表（树形结构）
+     */
+    @GetMapping("/knowledge/list")
+    @Override
+    public List<KnowledgePointVO> listKnowledgePoints(@RequestParam(value = "classId", required = false) Long classId) {
+        return examService.listKnowledgePoints(classId);
     }
 }

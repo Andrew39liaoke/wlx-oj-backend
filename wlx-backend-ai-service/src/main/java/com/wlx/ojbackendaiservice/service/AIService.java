@@ -33,4 +33,12 @@ public interface AIService {
      * @return 包含字符串结果的Flux流
      */
     Flux<ServerSentEvent<Object>> questionAnswer(@Valid AiInputDTO aiInputDTO);
+
+    /**
+     * 自动生成并填充题目 (流式)
+     *
+     * @param aiInputDTO Ai输入
+     * @return Flux<ServerSentEvent<Object>> 流式返回JSON片段
+     */
+    Flux<ServerSentEvent<Object>> generateQuestionAutoFill(AiInputDTO aiInputDTO);
 }

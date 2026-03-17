@@ -46,6 +46,9 @@ public class AIServiceImpl implements AIService {
     private ChatClient questionAnswerClient;
 
     @Resource
+    private ChatClient autoFillQuestionClient;
+
+    @Resource
     private VectorStore vectorStore;
 
     @Resource
@@ -325,4 +328,26 @@ public class AIServiceImpl implements AIService {
                 );
     }
 
+    /**
+     * 自动生成并填充题目的方法(流式)
+     * @param aiInputDTO Ai输入
+     * @return 返回题目JSON字符串流
+     */
+    @Override
+    public Flux<ServerSentEvent<Object>> generateQuestionAutoFill(AiInputDTO aiInputDTO) {
+        String prompt = aiInputDTO.getPrompt();
+        if (aiInputDTO.getClassId() != null) {
+            prompt += "\n当前班级ID(classId)为：" + aiInputDTO.getClassId();
+        }
+
+        return autoFillQuestionClient.prompt()
+                .user(prompt)
+                .stream()
+                .content()
+                .doOnNext(content -> log.info("【AI 自动填充题目】生成的流式数据块: {}", content))
+                .map(content -> ServerSentEvent.builder()
+                        .data(Result.success(content))
+                        .build()
+                );
+    }
 }

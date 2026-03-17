@@ -4,6 +4,7 @@ import com.alibaba.cloud.ai.dashscope.api.DashScopeApi;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.cloud.ai.memory.redis.JedisRedisChatMemoryRepository;
+import com.wlx.ojbackendaiservice.tools.KnowledgeTools;
 import com.wlx.ojbackendaiservice.tools.ProblemRecommendationTools;
 import com.wlx.ojbackendaiservice.tools.ProblemSolutionTools;
 import jakarta.annotation.Resource;
@@ -33,6 +34,9 @@ public class SaaLLMConfig
 
     @Resource
     private ProblemSolutionTools problemSolutionTools;
+
+    @Resource
+    private KnowledgeTools knowledgeTools;
 
 
     @Bean("chatModel")
@@ -113,6 +117,20 @@ public class SaaLLMConfig
                 .defaultSystem(AiSystemConstant.GENERATE_QUESTION)
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(windowChatMemory).build())
                 .defaultTools(problemSolutionTools)
+                .build();
+    }
+
+    @Bean("autoFillQuestionClient")
+    public ChatClient autoFillQuestionClient(ChatModel chatModel, JedisRedisChatMemoryRepository redisChatMemoryRepository) {
+        MessageWindowChatMemory windowChatMemory = MessageWindowChatMemory.builder()
+                .chatMemoryRepository(redisChatMemoryRepository)
+                .maxMessages(5)
+                .build();
+        return ChatClient
+                .builder(chatModel)
+                .defaultSystem(AiSystemConstant.QUESTION_AUTO_FILL_SYSTEM_PROMPT)
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(windowChatMemory).build())
+                .defaultTools(knowledgeTools)
                 .build();
     }
 

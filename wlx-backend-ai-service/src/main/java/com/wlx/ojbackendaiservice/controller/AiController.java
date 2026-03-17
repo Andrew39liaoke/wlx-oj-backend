@@ -18,7 +18,7 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 @RestController
-@CrossOrigin
+@CrossOrigin(originPatterns = "*", allowCredentials = "true")
 @RequestMapping("/ai")
 public class AiController {
     @Resource
@@ -56,6 +56,18 @@ public class AiController {
     @GetMapping(value = "/generate", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<Object>> generate(@RequestParam("userId") Long userId, String require) {
         return aiService.generateQuestion(require);
+    }
+
+    /**
+     * 自动智能生成填充题目的接口 (流式)
+     *
+     * @param aiInputDTO Ai输入
+     * @return 返回生成的题目JSON结构流
+     */
+    @PostMapping(value = "/generate/question/fill", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "自动填充题目内容")
+    public Flux<ServerSentEvent<Object>> generateQuestionAutoFill(@RequestBody @Valid AiInputDTO aiInputDTO) {
+        return aiService.generateQuestionAutoFill(aiInputDTO);
     }
 
     /**
