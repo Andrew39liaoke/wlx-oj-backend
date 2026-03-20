@@ -9,6 +9,8 @@ import com.wlx.ojbackendcodesandbox.model.ExecuteMessage;
 import com.wlx.ojbackendcodesandbox.model.JudgeInfo;
 import com.wlx.ojbackendcodesandbox.utils.ProcessUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StopWatch;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -17,8 +19,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Python 代码沙箱实现
+ * Python 原生代码沙箱实现
  */
+@Component
 @Slf4j
 public class PythonCodeSandbox implements CodeSandbox {
 

@@ -38,20 +38,20 @@ public interface PostService extends IService<Post> {
     long createPost(PostAddRequest postAddRequest, long userId);
     
     /**
-     * 根据 id 删除帖子，仅允许作者删除
+     * 根据 id 删除帖子，仅允许作者或管理员删除
      *
      * @param id
-     * @param userId
+     * @param loginUser
      * @return
      */
-    boolean deletePost(long id, long userId);
+    boolean deletePost(long id, User loginUser);
 
     /**
-     * 更新帖子，仅允许作者更新
+     * 更新帖子，仅允许作者或管理员更新
      *
      * @param postUpdateRequest
-     * @param userId
+     * @param loginUser
      * @return
      */
-    boolean updatePost(PostUpdateRequest postUpdateRequest, long userId);
+    boolean updatePost(PostUpdateRequest postUpdateRequest, User loginUser);
 }

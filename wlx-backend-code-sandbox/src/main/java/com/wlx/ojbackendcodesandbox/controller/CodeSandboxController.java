@@ -29,26 +29,36 @@ public class CodeSandboxController {
     private static final String AUTH_REQUEST_SECRET = "secretKey";
 
     // 本地版本代码沙箱映射
-    private static final Map<String, CodeSandbox> NATIVE_CODE_SANDBOX_MAP = new HashMap<>();
+    private final Map<String, CodeSandbox> NATIVE_CODE_SANDBOX_MAP = new HashMap<>();
 
     // Docker 版本代码沙箱映射
-    private static final Map<String, CodeSandbox> DOCKER_CODE_SANDBOX_MAP = new HashMap<>();
+    private final Map<String, CodeSandbox> DOCKER_CODE_SANDBOX_MAP = new HashMap<>();
 
-    static {
+    @Autowired
+    public CodeSandboxController(
+            JavaNativeCodeSandbox javaNativeCodeSandbox,
+            CppCodeSandbox cppCodeSandbox,
+            GoCodeSandbox goCodeSandbox,
+            PythonCodeSandbox pythonCodeSandbox,
+            JavaDockerCodeSandbox javaDockerCodeSandbox,
+            CppDockerCodeSandbox cppDockerCodeSandbox,
+            GoDockerCodeSandbox goDockerCodeSandbox,
+            PythonDockerCodeSandbox pythonDockerCodeSandbox
+    ) {
         // 本地版本
-        NATIVE_CODE_SANDBOX_MAP.put("java", new JavaNativeCodeSandbox());
-        NATIVE_CODE_SANDBOX_MAP.put("cpp", new CppCodeSandbox());
-        NATIVE_CODE_SANDBOX_MAP.put("c++", new CppCodeSandbox());
-        NATIVE_CODE_SANDBOX_MAP.put("go", new GoCodeSandbox());
-        NATIVE_CODE_SANDBOX_MAP.put("python", new PythonCodeSandbox());
-        NATIVE_CODE_SANDBOX_MAP.put("python3", new PythonCodeSandbox());
+        NATIVE_CODE_SANDBOX_MAP.put("java", javaNativeCodeSandbox);
+        NATIVE_CODE_SANDBOX_MAP.put("cpp", cppCodeSandbox);
+        NATIVE_CODE_SANDBOX_MAP.put("c++", cppCodeSandbox);
+        NATIVE_CODE_SANDBOX_MAP.put("go", goCodeSandbox);
+        NATIVE_CODE_SANDBOX_MAP.put("python", pythonCodeSandbox);
+        NATIVE_CODE_SANDBOX_MAP.put("python3", pythonCodeSandbox);
 
         // Docker 版本
-        DOCKER_CODE_SANDBOX_MAP.put("java", new JavaDockerCodeSandbox());
-        DOCKER_CODE_SANDBOX_MAP.put("cpp", new CppDockerCodeSandbox());
-        DOCKER_CODE_SANDBOX_MAP.put("c++", new CppDockerCodeSandbox());
-        DOCKER_CODE_SANDBOX_MAP.put("go", new GoDockerCodeSandbox());
-        DOCKER_CODE_SANDBOX_MAP.put("python", new PythonDockerCodeSandbox());
+        DOCKER_CODE_SANDBOX_MAP.put("java", javaDockerCodeSandbox);
+        DOCKER_CODE_SANDBOX_MAP.put("cpp", cppDockerCodeSandbox);
+        DOCKER_CODE_SANDBOX_MAP.put("c++", cppDockerCodeSandbox);
+        DOCKER_CODE_SANDBOX_MAP.put("go", goDockerCodeSandbox);
+        DOCKER_CODE_SANDBOX_MAP.put("python", pythonDockerCodeSandbox);
     }
 
 

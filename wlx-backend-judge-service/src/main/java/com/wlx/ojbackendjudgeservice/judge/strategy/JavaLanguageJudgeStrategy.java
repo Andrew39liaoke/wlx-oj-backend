@@ -61,8 +61,8 @@ public class JavaLanguageJudgeStrategy implements JudgeStrategy {
             judgeInfoResponse.setMessage(judgeInfoMessageEnum.getValue());
             return judgeInfoResponse;
         }
-        // 判断内存限制
-        if (memory > needMemoryLimit) {
+        // 判断内存限制 (needMemoryLimit 数据库存的是 KB，沙箱 memory 返回的是 Byte)
+        if (memory > (needMemoryLimit * 1024L)) {
             judgeInfoMessageEnum = JudgeInfoMessageEnum.MEMORY_LIMIT_EXCEEDED;
             judgeInfoResponse.setMessage(judgeInfoMessageEnum.getValue());
             return judgeInfoResponse;

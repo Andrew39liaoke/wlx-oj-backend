@@ -68,7 +68,7 @@ public class ExamController {
 
     // ===== E05 获取知识点列表 =====
     @GetMapping("/knowledge/list")
-    public ResponseEntity<List<KnowledgePointVO>> listKnowledgePoints(@RequestParam(required = false) Long classId) {
+    public ResponseEntity<List<KnowledgePointVO>> listKnowledgePoints(@RequestParam(value = "classId", required = false) Long classId) {
         return Result.success(examService.listKnowledgePoints(classId));
     }
 
@@ -138,14 +138,14 @@ public class ExamController {
 
     // ===== E10 发布试卷 =====
     @PostMapping("/paper/publish")
-    public ResponseEntity<Boolean> publishPaper(@RequestParam Long paperId, HttpServletRequest request) {
+    public ResponseEntity<Boolean> publishPaper(@RequestParam("paperId") Long paperId, HttpServletRequest request) {
         User user = getLoginUser(request);
         return Result.success(examService.publishPaper(paperId, user.getId()));
     }
 
     // ===== E24 下架试卷 =====
     @PostMapping("/paper/unpublish")
-    public ResponseEntity<Boolean> unpublishPaper(@RequestParam Long paperId, HttpServletRequest request) {
+    public ResponseEntity<Boolean> unpublishPaper(@RequestParam("paperId") Long paperId, HttpServletRequest request) {
         User user = getLoginUser(request);
         return Result.success(examService.unpublishPaper(paperId, user.getId()));
     }
@@ -159,32 +159,32 @@ public class ExamController {
 
     // ===== E21 获取试卷详情 =====
     @GetMapping("/paper/get")
-    public ResponseEntity<ExamPaperVO> getPaperById(@RequestParam Long paperId) {
+    public ResponseEntity<ExamPaperVO> getPaperById(@RequestParam("paperId") Long paperId) {
         return Result.success(examService.getPaperById(paperId));
     }
 
     // ===== E22 添加题目到试卷 =====
     @PostMapping("/paper/question/add")
-    public ResponseEntity<Boolean> addQuestionToPaper(@RequestParam Long paperId, @RequestParam Long questionId) {
+    public ResponseEntity<Boolean> addQuestionToPaper(@RequestParam("paperId") Long paperId, @RequestParam("questionId") Long questionId) {
         return Result.success(examService.addQuestionToPaper(paperId, questionId));
     }
 
     // ===== E23 从试卷移除题目 =====
     @PostMapping("/paper/question/remove")
-    public ResponseEntity<Boolean> removeQuestionFromPaper(@RequestParam Long paperId, @RequestParam Long questionId) {
+    public ResponseEntity<Boolean> removeQuestionFromPaper(@RequestParam("paperId") Long paperId, @RequestParam("questionId") Long questionId) {
         return Result.success(examService.removeQuestionFromPaper(paperId, questionId));
     }
 
     // ===== E12 获取试卷详情（答题用） =====
     @GetMapping("/paper/take/{paperId}")
-    public ResponseEntity<ExamTakeVO> getPaperForTake(@PathVariable Long paperId, HttpServletRequest request) {
+    public ResponseEntity<ExamTakeVO> getPaperForTake(@PathVariable("paperId") Long paperId, HttpServletRequest request) {
         User user = getLoginUser(request);
         return Result.success(examService.getPaperForTake(paperId, user.getId()));
     }
 
     // ===== E13 开始答题 =====
     @PostMapping("/answer/start")
-    public ResponseEntity<Long> startExam(@RequestParam Long paperId, HttpServletRequest request) {
+    public ResponseEntity<Long> startExam(@RequestParam("paperId") Long paperId, HttpServletRequest request) {
         User user = getLoginUser(request);
         return Result.success(examService.startExam(paperId, user.getId()));
     }
@@ -198,21 +198,21 @@ public class ExamController {
 
     // ===== E15 获取答题结果 =====
     @GetMapping("/answer/result/{recordId}")
-    public ResponseEntity<ExamResultVO> getExamResult(@PathVariable Long recordId, HttpServletRequest request) {
+    public ResponseEntity<ExamResultVO> getExamResult(@PathVariable("recordId") Long recordId, HttpServletRequest request) {
         User user = getLoginUser(request);
         return Result.success(examService.getExamResult(recordId, user.getId()));
     }
 
     // ===== E16 获取能力分析报告 =====
     @GetMapping("/ability/{recordId}")
-    public ResponseEntity<AbilityReportVO> getAbilityReport(@PathVariable Long recordId, HttpServletRequest request) {
+    public ResponseEntity<AbilityReportVO> getAbilityReport(@PathVariable("recordId") Long recordId, HttpServletRequest request) {
         User user = getLoginUser(request);
         return Result.success(examService.getAbilityReport(recordId, user.getId()));
     }
 
     // ===== E17 获取练习推荐列表 =====
     @GetMapping("/practice/recommend/{recordId}")
-    public ResponseEntity<List<PracticeRecommendationVO>> getPracticeRecommendations(@PathVariable Long recordId, HttpServletRequest request) {
+    public ResponseEntity<List<PracticeRecommendationVO>> getPracticeRecommendations(@PathVariable("recordId") Long recordId, HttpServletRequest request) {
         User user = getLoginUser(request);
         return Result.success(examService.getPracticeRecommendations(recordId, user.getId()));
     }
@@ -226,13 +226,13 @@ public class ExamController {
 
     // ===== E19 获取知识图谱数据 =====
     @GetMapping("/knowledge/graph/{classId}")
-    public ResponseEntity<KnowledgeGraphVO> getKnowledgeGraph(@PathVariable Long classId) {
+    public ResponseEntity<KnowledgeGraphVO> getKnowledgeGraph(@PathVariable("classId") Long classId) {
         return Result.success(examService.getKnowledgeGraph(classId));
     }
 
     // ===== E20 获取班级考试统计 =====
     @GetMapping("/stats/{paperId}")
-    public ResponseEntity<ExamStatsVO> getExamStats(@PathVariable Long paperId) {
+    public ResponseEntity<ExamStatsVO> getExamStats(@PathVariable("paperId") Long paperId) {
         return Result.success(examService.getExamStats(paperId));
     }
 }

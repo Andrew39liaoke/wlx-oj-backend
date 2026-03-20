@@ -20,8 +20,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.wlx.ojbackendmodel.model.enums.UserRoleEnum;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -120,20 +122,28 @@ public class PostServiceImpl extends ServiceImpl<PostMapper, Post> implements Po
     }
 
     @Override
-    public boolean deletePost(long id, long userId) {
+    public boolean deletePost(long id, User loginUser) {
         Post post = this.getById(id);
         ThrowUtils.throwIf(post == null, ResopnseCodeEnum.NOT_FOUND_ERROR);
-        ThrowUtils.throwIf(!post.getUserId().equals(userId), ResopnseCodeEnum.NO_AUTH_ERROR);
+        // 检查权限：仅允许作者或管理员删除
+        boolean isOwner = Objects.equals(post.getUserId(), loginUser.getId());
+        boolean isAdmin = UserRoleEnum.ADMIN.getValue().equals(loginUser.getRole());
+        ThrowUtils.throwIf(!isOwner && !isAdmin, ResopnseCodeEnum.NO_AUTH_ERROR);
+        
         boolean result = this.removeById(id);
         ThrowUtils.throwIf(!result, ResopnseCodeEnum.OPERATION_ERROR);
         return result;
     }
 
     @Override
-    public boolean updatePost(PostUpdateRequest postUpdateRequest, long userId) {
+    public boolean updatePost(PostUpdateRequest postUpdateRequest, User loginUser) {
         Post exist = this.getById(postUpdateRequest.getId());
         ThrowUtils.throwIf(exist == null, ResopnseCodeEnum.NOT_FOUND_ERROR);
-        ThrowUtils.throwIf(!exist.getUserId().equals(userId), ResopnseCodeEnum.NO_AUTH_ERROR);
+        // 检查权限：仅允许作者或管理员更新
+        boolean isOwner = Objects.equals(exist.getUserId(), loginUser.getId());
+        boolean isAdmin = UserRoleEnum.ADMIN.getValue().equals(loginUser.getRole());
+        ThrowUtils.throwIf(!isOwner && !isAdmin, ResopnseCodeEnum.NO_AUTH_ERROR);
+        
         Post post = new Post();
         BeanUtils.copyProperties(postUpdateRequest, post);
         post.setUserId(exist.getUserId());

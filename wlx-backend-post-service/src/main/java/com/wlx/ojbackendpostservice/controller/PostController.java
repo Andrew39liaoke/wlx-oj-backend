@@ -58,7 +58,7 @@ public class PostController {
         }
         User user = userFeignClient.getLoginUser(request.getHeader(JwtUtil.HEADER));
         long id = deleteRequest.getId();
-        boolean b = postService.deletePost(id, user.getId());
+        boolean b = postService.deletePost(id, user);
         return Result.success(b);
     }
 
@@ -75,7 +75,7 @@ public class PostController {
             throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR);
         }
         User user = userFeignClient.getLoginUser(request.getHeader(JwtUtil.HEADER));
-        boolean result = postService.updatePost(req, user.getId());
+        boolean result = postService.updatePost(req, user);
         return Result.success(result);
     }
 

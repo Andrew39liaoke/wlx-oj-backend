@@ -20,15 +20,15 @@ public class RemoteCodeSandbox implements CodeSandbox {
     private static final String AUTH_REQUEST_SECRET = "secretKey";
 
     // 远程沙箱地址（使用 Docker 版本）
-    private static final String DOCKER_URL = "http://localhost:8090/executeCode/docker";
+    private static final String DOCKER_URL = "http://106.54.10.138:8090/executeCode/docker";
 
 
     @Override
     public ExecuteCodeResponse executeCode(ExecuteCodeRequest executeCodeRequest) {
-        System.out.println("远程代码沙箱");
-        String url = "http://localhost:8090/executeCode";
-/*        System.out.println("远程代码沙箱（Docker版本）");
-        String url = DOCKER_URL;*/
+/*        System.out.println("远程代码沙箱");
+        String url = "http://localhost:8090/executeCode";*/
+        System.out.println("远程代码沙箱（Docker版本）");
+        String url = DOCKER_URL;
         String json = JSONUtil.toJsonStr(executeCodeRequest);
         String responseStr = HttpUtil.createPost(url)
                 .header(AUTH_REQUEST_HEADER, AUTH_REQUEST_SECRET)

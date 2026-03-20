@@ -9,16 +9,20 @@ import com.wlx.ojbackendmodel.model.dto.file.FileUploadResponse;
 import com.wlx.ojbackendmodel.model.entity.FileInfo;
 import com.wlx.ojbackendmodel.model.entity.User;
 import com.wlx.ojbackendfileservice.service.FileInfoService;
+import com.wlx.ojbackendfileservice.service.ExcelExportService;
 
 import com.wlx.ojbackendserviceclient.service.PostFeignClient;
 import com.wlx.ojbackendserviceclient.service.UserFeignClient;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 /**
  * 文件控制器
@@ -30,6 +34,9 @@ public class FileController {
 
     @Resource
     private FileInfoService fileInfoService;
+
+    @Resource
+    private ExcelExportService excelExportService;
 
     @Resource
     private UserFeignClient userFeignClient;
@@ -240,6 +247,45 @@ public class FileController {
         } catch (Exception e) {
             log.error("班级文件上传失败", e);
             throw new BusinessException(ResopnseCodeEnum.SYSTEM_ERROR, "班级文件上传失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 导出班级统计数据为 Excel
+     */
+    @PostMapping("/export/class/stats")
+    @Operation(summary = "导出班级统计数据为 Excel")
+    public void exportClassStatsToExcel(
+            @RequestParam("className") String className,
+            @RequestBody Map<String, Object> statsData,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        
+        if (StringUtils.isBlank(className)) {
+            throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR, "班级名称不能为空");
+        }
+        
+        // 获取当前登录用户（验证登录状态）
+        User loginUser = userFeignClient.getLoginUser(request.getHeader(JwtUtil.HEADER));
+        if (loginUser == null) {
+            throw new BusinessException(ResopnseCodeEnum.NOT_LOGIN_ERROR);
+        }
+        
+        try {
+            byte[] excelData = excelExportService.exportClassStatsToExcel(className, statsData);
+            
+            // 设置响应头
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + 
+                java.net.URLEncoder.encode(className + "_班级统计报表", "UTF-8") + ".xlsx\"");
+            response.setContentLength(excelData.length);
+            response.getOutputStream().write(excelData);
+            response.getOutputStream().flush();
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("导出 Excel 失败", e);
+            throw new BusinessException(ResopnseCodeEnum.SYSTEM_ERROR, "导出 Excel 失败：" + e.getMessage());
         }
     }
 }

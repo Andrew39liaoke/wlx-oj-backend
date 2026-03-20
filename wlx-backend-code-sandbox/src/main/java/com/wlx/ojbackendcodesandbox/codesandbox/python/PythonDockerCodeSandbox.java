@@ -8,6 +8,10 @@ import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.*;
 import com.github.dockerjava.api.model.*;
 import com.github.dockerjava.core.DockerClientBuilder;
+import com.github.dockerjava.core.DefaultDockerClientConfig;
+import com.github.dockerjava.core.DockerClientConfig;
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
+import com.github.dockerjava.transport.DockerHttpClient;
 import com.github.dockerjava.core.command.ExecStartResultCallback;
 import com.wlx.ojbackendcodesandbox.codesandbox.CodeSandbox;
 import com.wlx.ojbackendcodesandbox.model.ExecuteCodeRequest;
@@ -15,6 +19,8 @@ import com.wlx.ojbackendcodesandbox.model.ExecuteCodeResponse;
 import com.wlx.ojbackendcodesandbox.model.ExecuteMessage;
 import com.wlx.ojbackendcodesandbox.model.JudgeInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 
 import java.io.Closeable;
@@ -30,6 +36,7 @@ import java.util.concurrent.TimeUnit;
  * Python Docker 代码沙箱实现
  */
 @Slf4j
+@Component
 public class PythonDockerCodeSandbox implements CodeSandbox {
 
     private static final String GLOBAL_CODE_DIR_NAME = "tmpCode";
@@ -41,6 +48,9 @@ public class PythonDockerCodeSandbox implements CodeSandbox {
     private static final String DOCKER_IMAGE = "python:3.11-alpine";
 
     private static final Boolean FIRST_INIT = true;
+
+    @Value("${docker.host}")
+    private String dockerHost;
 
     public ExecuteCodeResponse executeCode(ExecuteCodeRequest executeCodeRequest) {
         List<String> inputList = executeCodeRequest.getInputList();
@@ -85,11 +95,24 @@ public class PythonDockerCodeSandbox implements CodeSandbox {
     public List<ExecuteMessage> runFile(File userCodeFile, List<String> inputList) {
         String userCodeParentPath = userCodeFile.getParentFile().getAbsolutePath();
         
-        // 获取默认的 Docker Client
-        DockerClient dockerClient = DockerClientBuilder.getInstance().build();
+        // 配置 Docker Client 使用 Apache HttpClient 传输层
+        DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
+                .withDockerHost(dockerHost)
+                .build();
+        DockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
+                .dockerHost(config.getDockerHost())
+                .sslConfig(config.getSSLConfig())
+                .maxConnections(100)
+                .build();
+        DockerClient dockerClient = DockerClientBuilder.getInstance(config)
+                .withDockerHttpClient(httpClient)
+                .build();
 
-        // 拉取镜像
-        if (FIRST_INIT) {
+        // 1. 获取镜像信息
+        try {
+            dockerClient.inspectImageCmd(DOCKER_IMAGE).exec();
+        } catch (Exception e) {
+            System.out.println("本地无镜像，开始拉取：" + DOCKER_IMAGE);
             PullImageCmd pullImageCmd = dockerClient.pullImageCmd(DOCKER_IMAGE);
             PullImageResultCallback pullImageResultCallback = new PullImageResultCallback() {
                 @Override
@@ -99,19 +122,18 @@ public class PythonDockerCodeSandbox implements CodeSandbox {
                 }
             };
             try {
-                pullImageCmd.exec(pullImageResultCallback).awaitCompletion();
-            } catch (InterruptedException e) {
-                System.out.println("拉取镜像异常");
-                throw new RuntimeException(e);
+                pullImageCmd.exec(pullImageResultCallback).awaitCompletion(5, TimeUnit.MINUTES);
+                System.out.println("下载镜像完成");
+            } catch (InterruptedException e1) {
+                System.err.println("拉取镜像异常");
+                throw new RuntimeException(e1);
             }
         }
 
-        System.out.println("下载完成");
-
-        // 创建容器
+        // 2. 创建容器
         CreateContainerCmd containerCmd = dockerClient.createContainerCmd(DOCKER_IMAGE);
         HostConfig hostConfig = new HostConfig();
-        hostConfig.withMemory(100 * 1000 * 1000L);
+        hostConfig.withMemory(256 * 1024 * 1024L);
         hostConfig.withMemorySwap(0L);
         hostConfig.withCpuCount(1L);
         hostConfig.setBinds(new Bind(userCodeParentPath, new Volume("/app")));
@@ -119,36 +141,41 @@ public class PythonDockerCodeSandbox implements CodeSandbox {
         CreateContainerResponse createContainerResponse = containerCmd
                 .withHostConfig(hostConfig)
                 .withNetworkDisabled(true)
-                .withReadonlyRootfs(true)
+                .withReadonlyRootfs(false)
                 .withAttachStdin(true)
                 .withAttachStderr(true)
                 .withAttachStdout(true)
-                .withTty(true)
+                .withTty(false) // 禁用 TTY 以获取纯净输出流
+                .withCmd("tail", "-f", "/dev/null") // 保持容器挂起不断开
                 .exec();
         System.out.println(createContainerResponse);
         String containerId = createContainerResponse.getId();
 
-        // 启动容器
-        dockerClient.startContainerCmd(containerId).exec();
-
-        // Python 不需要编译，直接执行
-        // 执行命令并获取结果
         List<ExecuteMessage> executeMessageList = new ArrayList<>();
-        for (String inputArgs : inputList) {
-            // 通过 shell 管道将输入传入 stdin，而非命令行参数
-            String[] runCmdArray;
-            if (inputArgs != null && !inputArgs.isEmpty()) {
-                runCmdArray = new String[]{"sh", "-c", "echo '" + inputArgs + "' | python /app/" + GLOBAL_PYTHON_FILE_NAME};
-            } else {
-                runCmdArray = new String[]{"python", "/app/" + GLOBAL_PYTHON_FILE_NAME};
+        try {
+            // 3. 启动容器
+            dockerClient.startContainerCmd(containerId).exec();
+
+            // 4. 执行命令并获取结果
+            for (int i = 0; i < inputList.size(); i++) {
+                String inputArgs = inputList.get(i);
+                // 安全增强：改用文件重定向，免疫 Shell 注入
+                String inputFileName = userCodeParentPath + File.separator + (i + 1) + ".txt";
+                FileUtil.writeString(inputArgs, inputFileName, StandardCharsets.UTF_8);
+                
+                String[] runCmdArray = new String[]{"sh", "-c", "python3 /app/" + GLOBAL_PYTHON_FILE_NAME + " < /app/" + (i + 1) + ".txt"};
+                ExecuteMessage executeMessage = execInContainer(dockerClient, containerId, runCmdArray);
+                executeMessageList.add(executeMessage);
             }
-            
-            ExecuteMessage executeMessage = execInContainer(dockerClient, containerId, runCmdArray);
-            executeMessageList.add(executeMessage);
+        } finally {
+            // 5. 最后必定清理并销毁容器实体
+            System.out.println("清理临时容器，容器ID: " + containerId);
+            try {
+                dockerClient.removeContainerCmd(containerId).withForce(true).exec();
+            } catch (Exception e) {
+                System.out.println("清理容器异常: " + e.getMessage());
+            }
         }
-        
-        // 清理容器
-        dockerClient.removeContainerCmd(containerId).withForce(true).exec();
         
         return executeMessageList;
     }
@@ -168,6 +195,7 @@ public class PythonDockerCodeSandbox implements CodeSandbox {
             
             ExecCreateCmdResponse execCreateCmdResponse = dockerClient.execCreateCmd(containerId)
                     .withCmd(cmdArray)
+                    .withWorkingDir("/app")
                     .withAttachStderr(true)
                     .withAttachStdin(true)
                     .withAttachStdout(true)
@@ -175,7 +203,9 @@ public class PythonDockerCodeSandbox implements CodeSandbox {
             
             System.out.println("创建执行命令：" + execCreateCmdResponse);
             String execId = execCreateCmdResponse.getId();
-            
+            StringBuilder messageBuilder = new StringBuilder();
+            StringBuilder errorBuilder = new StringBuilder();
+
             // 获取内存统计
             StatsCmd statsCmd = dockerClient.statsCmd(containerId);
             ResultCallback<Statistics> statisticsResultCallback = statsCmd.exec(new ResultCallback<Statistics>() {
@@ -196,35 +226,53 @@ public class PythonDockerCodeSandbox implements CodeSandbox {
                 @Override
                 public void onComplete() {}
             });
-            statsCmd.exec(statisticsResultCallback);
             
             ExecStartResultCallback execStartResultCallback = new ExecStartResultCallback() {
                 @Override
                 public void onNext(Frame frame) {
                     StreamType streamType = frame.getStreamType();
                     if (StreamType.STDERR.equals(streamType)) {
-                        errorMessage[0] = (errorMessage[0] == null ? "" : errorMessage[0]) + new String(frame.getPayload());
+                        String errorPayload = new String(frame.getPayload(), StandardCharsets.UTF_8);
+                        errorBuilder.append(errorPayload);
+                        System.out.println("输出错误结果：" + errorPayload);
                     } else {
-                        message[0] = (message[0] == null ? "" : message[0]) + new String(frame.getPayload());
+                        String messagePayload = new String(frame.getPayload(), StandardCharsets.UTF_8);
+                        messageBuilder.append(messagePayload);
+                        System.out.println("输出结果：" + messagePayload);
                     }
                     super.onNext(frame);
                 }
             };
             
-            stopWatch.start();
-            dockerClient.execStartCmd(execId)
-                    .exec(execStartResultCallback)
-                    .awaitCompletion(TIME_OUT, TimeUnit.MILLISECONDS);
-            stopWatch.stop();
-            time = stopWatch.getLastTaskTimeMillis();
+            try {
+                stopWatch.start();
+                dockerClient.execStartCmd(execId)
+                        .exec(execStartResultCallback)
+                        .awaitCompletion(TIME_OUT, TimeUnit.MILLISECONDS);
+                stopWatch.stop();
+                time = stopWatch.getLastTaskTimeMillis();
+                
+                // 获取退出码
+                try {
+                    Integer exitCode = dockerClient.inspectExecCmd(execId).exec().getExitCode();
+                    executeMessage.setExitValue(exitCode);
+                } catch (Exception e) {
+                    executeMessage.setExitValue(-1);
+                }
+                
+            } catch (InterruptedException e) {
+                System.out.println("程序执行异常或超时");
+                errorBuilder.append("执行超时或异常");
+                executeMessage.setExitValue(-1);
+                time = TIME_OUT + 10;
+            } finally {
+                statsCmd.close();
+            }
             
-            statsCmd.close();
-            
-            executeMessage.setMessage(message[0]);
-            executeMessage.setErrorMessage(errorMessage[0]);
+            executeMessage.setMessage(StrUtil.trim(messageBuilder.toString()));
+            executeMessage.setErrorMessage(StrUtil.trim(errorBuilder.toString()));
             executeMessage.setTime(time);
             executeMessage.setMemory(maxMemory[0]);
-            executeMessage.setExitValue(0);
             
         } catch (Exception e) {
             executeMessage.setErrorMessage(e.getMessage());
@@ -241,6 +289,7 @@ public class PythonDockerCodeSandbox implements CodeSandbox {
         ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
         List<String> outputList = new ArrayList<>();
         long maxTime = 0;
+        long maxMemory = 0;
 
         for (ExecuteMessage executeMessage : executeMessageList) {
             String errorMessage = executeMessage.getErrorMessage();
@@ -254,6 +303,10 @@ public class PythonDockerCodeSandbox implements CodeSandbox {
             if (time != null) {
                 maxTime = Math.max(maxTime, time);
             }
+            Long memory = executeMessage.getMemory();
+            if (memory != null) {
+                maxMemory = Math.max(maxMemory, memory);
+            }
         }
 
         if (outputList.size() == executeMessageList.size()) {
@@ -263,6 +316,7 @@ public class PythonDockerCodeSandbox implements CodeSandbox {
         
         JudgeInfo judgeInfo = new JudgeInfo();
         judgeInfo.setTime(maxTime);
+        judgeInfo.setMemory(maxMemory);
         executeCodeResponse.setJudgeInfo(judgeInfo);
         
         return executeCodeResponse;

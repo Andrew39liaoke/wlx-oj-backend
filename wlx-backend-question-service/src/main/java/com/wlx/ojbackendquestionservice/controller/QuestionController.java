@@ -160,7 +160,7 @@ public class QuestionController {
      * @return
      */
     @GetMapping("/get")
-    public ResponseEntity<Question> getQuestionById(long id, HttpServletRequest request) {
+    public ResponseEntity<Question> getQuestionById(@RequestParam("id") long id, HttpServletRequest request) {
         if (id <= 0) {
             throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR);
         }
@@ -182,7 +182,7 @@ public class QuestionController {
      * @return
      */
     @GetMapping("/get/vo")
-    public ResponseEntity<QuestionVO> getQuestionVOById(long id) {
+    public ResponseEntity<QuestionVO> getQuestionVOById(@RequestParam("id") long id) {
         if (id <= 0) {
             throw new BusinessException(ResopnseCodeEnum.PARAMS_ERROR);
         }
